@@ -68,7 +68,7 @@ namespace HtmlAgilityPack
             set { _text = value; }
         }
 
-        public override void WriteTo(TextWriter outText)
+        public override void WriteTo(TextWriter outText, int level=0)
         {
             if (outText == null)
                 throw new ArgumentNullException("outText");
