@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{1028002A-BBE2-4FF2-94B7-A8368A8F6887}</ProjectGuid>
+    <ProjectGuid>{AECD4CEC-6C3A-4EF8-9EED-68E825782652}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HtmlAgilityPack</RootNamespace>
@@ -48,7 +48,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\fx.4.0\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;FX40 FX45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\fx.4.0\Debug\HtmlAgilityPack.XML</DocumentationFile>
@@ -59,7 +59,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\fx.4.0\Release\</OutputPath>
-    <DefineConstants>FX40</DefineConstants>
+    <DefineConstants>FX40 FX45</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\fx.4.0\Release\HtmlAgilityPack.XML</DocumentationFile>
