@@ -65,6 +65,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -99,7 +100,7 @@
   <Import Project="..\HtmlAgilityPack.Shared\HtmlAgilityPack.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>del /f /q $(SolutionDir)..\Nuget\lib\Net45\*
-copy "$(TargetDir)Html*.*" $(SolutionDir)..\Nuget\lib\Net45\</PostBuildEvent>
+    <PostBuildEvent>del /f /q "$(SolutionDir)..\Nuget\lib\Net45\*"
+copy "$(TargetDir)Html*.*" "$(SolutionDir)..\Nuget\lib\Net45\"</PostBuildEvent>
   </PropertyGroup>
 </Project>

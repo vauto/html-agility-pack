@@ -25,7 +25,7 @@ namespace HtmlAgilityPack
 
         internal HtmlTextNode(HtmlDocument ownerdocument, int index)
             :
-                base(HtmlNodeType.Text, ownerdocument, index)
+            base(HtmlNodeType.Text, ownerdocument, index)
         {
         }
 
@@ -53,6 +53,7 @@ namespace HtmlAgilityPack
                 {
                     return base.OuterHtml;
                 }
+
                 return HtmlDocument.HtmlEncode(_text);
             }
         }
@@ -68,9 +69,14 @@ namespace HtmlAgilityPack
                 {
                     return HtmlEntity.DeEntitize(base.OuterHtml);
                 }
+
                 return _text;
             }
-            set { _text = value; }
+            set
+            {
+                _text = value;
+                SetChanged();
+            }
         }
 
         public override void WriteTo(TextWriter outText)

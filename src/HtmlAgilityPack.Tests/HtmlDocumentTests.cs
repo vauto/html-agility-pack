@@ -4,6 +4,10 @@ using System.Linq;
 using System.Net;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.Threading;
 
 namespace HtmlAgilityPack.Tests
 {
@@ -17,8 +21,10 @@ namespace HtmlAgilityPack.Tests
         [OneTimeSetUp]
         public void Setup()
         {
-            //_contentDirectory = Path.Combine(Environment.CurrentDirectory, @"..\HtmlAgilityPack.Tests\files\");
-            _contentDirectory = Path.Combine(@"C:\Users\Jonathan\Desktop\Z\zzzproject\HtmlAgilityPack\HtmlAgilityPack.Tests\bin\Debug\files\");
+             
+
+            _contentDirectory = Path.GetDirectoryName(typeof(HtmlDocumentTests).Assembly.Location).ToString() + "\\files\\";
+            //   _contentDirectory = Path.Combine(@"C:\Users\Jonathan\Desktop\Z\zzzproject\HtmlAgilityPack\HtmlAgilityPack.Tests\bin\Debug\files\");
         }
 
         private HtmlDocument GetMshomeDocument()
@@ -29,15 +35,51 @@ namespace HtmlAgilityPack.Tests
         }
 
         [Test]
-        [Ignore("cdonnelly 2012-11-13: Test appears to be broken.")]
-        public void StackOverflow()
+        public void HtmlAgilityPack_AttributeCollectionBug()
         {
-            var url = "http://rewarding.me/active-tel-domains/index.php/index.php?rescan=amour.tel&w=A&url=&by=us&limits=0";
-            var request = WebRequest.Create(url);
-            var htmlDocument = new HtmlDocument();
-            htmlDocument.Load((request.GetResponse()).GetResponseStream());
-            Stream memoryStream = new MemoryStream();
-            htmlDocument.Save(memoryStream);
+            { 
+            const string firstAttrName = "first";
+            const string secondAttrName = "second";
+            const string value = "value";
+
+            HtmlNode firstNode = HtmlNode.CreateNode("<div></div>");
+            firstNode.Attributes.Add(firstAttrName, value);
+
+            HtmlNode secondNode = HtmlNode.CreateNode("<div></div>");
+            secondNode.Attributes.Add(secondAttrName, value);
+       
+            secondNode.Attributes[0] = firstNode.Attributes[0];
+
+            Assert.IsNotNull(secondNode.Attributes[0]);
+            Assert.AreEqual(firstAttrName, secondNode.Attributes[0].Name);
+
+            Assert.IsNotNull(secondNode.Attributes[firstAttrName], $"'{firstAttrName}' should exist in the collection");
+            Assert.AreEqual(firstAttrName, secondNode.Attributes[firstAttrName].Name);
+
+            Assert.IsNull(secondNode.Attributes   [secondAttrName], $"{secondAttrName} should not exist in the collection");
+            }
+
+            {
+                const string firstAttrName = "first";
+                const string secondAttrName = "second";
+                const string value = "value";
+
+                HtmlNode firstNode = HtmlNode.CreateNode("<div></div>");
+                firstNode.Attributes.Add(firstAttrName, value);
+
+                HtmlNode secondNode = HtmlNode.CreateNode("<div></div>");
+                secondNode.Attributes.Add(secondAttrName, value);
+                var a = secondNode.Attributes[secondAttrName];
+                secondNode.Attributes[secondAttrName] = firstNode.Attributes[firstAttrName];
+
+                Assert.IsNotNull(secondNode.Attributes[firstAttrName]);
+                Assert.AreEqual(firstAttrName, secondNode.Attributes[firstAttrName].Name);
+
+                Assert.IsNotNull(secondNode.Attributes[0], $"'{firstAttrName}' should exist in the collection");
+                Assert.AreEqual(firstAttrName, secondNode.Attributes[firstAttrName].Name);
+
+                Assert.IsNull(secondNode.Attributes[secondAttrName], $"{secondAttrName} should not exist in the collection");
+            }
         }
 
         [Test]
@@ -227,6 +269,33 @@ namespace HtmlAgilityPack.Tests
             Assert.AreEqual(divNode.Attributes.Count, newNode.Attributes.Count);
             Assert.AreEqual(attribute1.Value, attribute2.Value);
             Assert.AreEqual(attribute1.QuoteType, attribute2.QuoteType);
+        }
+
+        [Test]
+        public void TestCommentNode()
+        {
+            var html =
+                @"<!DOCTYPE html>
+<html>
+<body>
+<!--title='Title' >
+<!--title='Title'--!>
+<!--title = 'Title'-->
+<!--title='Title'--!>
+<h1>This is <b>bold</b> headddding</h1>
+	<p>This is <u>underlinyed</u> paragraph</p>
+	<h2>This is <i>italic</i> heading</h2>
+</body>
+</html> ";
+
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(html);
+
+            var h1 = htmlDoc.DocumentNode.SelectNodes("//h1");
+            var comments = htmlDoc.DocumentNode.SelectNodes("//comment()");
+
+            Assert.AreEqual(h1.Count, 1);
+            Assert.AreEqual(comments.Count, 4);
         }
 
         [Test]
@@ -533,19 +602,20 @@ namespace HtmlAgilityPack.Tests
         [Test]
         public void TestLoadWithUri()
         {
-            string adress = "http://www.filmweb.pl/film/Piraci+z+Karaib%C3%B3w%3A+Zemsta+Salazara-2017-606542";
-            Uri uri = new Uri(adress, true);
-            var web = new HtmlWeb();
-            HtmlAgilityPack.HtmlDocument document = web.Load(uri);
-            Assert.AreNotEqual(string.Empty, document.DocumentNode.OuterHtml);
+            //string adress = "http://www.filmweb.pl/film/Piraci+z+Karaib%C3%B3w%3A+Zemsta+Salazara-2017-606542";
+            //Uri uri = new Uri(adress, true);
+            //var web = new HtmlWeb();
+            //HtmlAgilityPack.HtmlDocument document = web.Load(uri);
+            //Assert.AreNotEqual(string.Empty, document.DocumentNode.OuterHtml);
         }
+
         [Test]
         public void TestFormTag()
         {
             var html = @"<form></form>";
             var document = new HtmlDocument();
             document.LoadHtml(html);
-            var result = document.DocumentNode.Descendants().Select(dn => new { dn.NodeType, dn.Name, dn.OuterHtml }).ToArray();
+            var result = document.DocumentNode.Descendants().Select(dn => new {dn.NodeType, dn.Name, dn.OuterHtml}).ToArray();
             Assert.AreEqual(html, document.DocumentNode.OuterHtml);
             Assert.AreEqual(1, result.Count());
         }
@@ -556,7 +626,7 @@ namespace HtmlAgilityPack.Tests
             var html = @"<div><1</div>";
             var document = new HtmlDocument();
             document.LoadHtml(html);
-            var result = document.DocumentNode.Descendants().Select(dn => new { dn.NodeType, dn.Name, dn.OuterHtml }).ToArray();
+            var result = document.DocumentNode.Descendants().Select(dn => new {dn.NodeType, dn.Name, dn.OuterHtml}).ToArray();
             Assert.AreEqual(html, document.DocumentNode.OuterHtml);
         }
 
@@ -567,7 +637,7 @@ namespace HtmlAgilityPack.Tests
                 var html = @"<dt>a<dd>b<dd>c<dt>a<dd>b<dd>c";
                 var document = new HtmlDocument();
                 document.LoadHtml(html);
-                var result = document.DocumentNode.Descendants().Select(dn => new { dn.NodeType, dn.Name, dn.OuterHtml }).ToArray();
+                var result = document.DocumentNode.Descendants().Select(dn => new {dn.NodeType, dn.Name, dn.OuterHtml}).ToArray();
 
                 // TODO: Fix issue with last "dd"
                 Assert.AreEqual(html + "</dd>", document.DocumentNode.OuterHtml);
@@ -578,7 +648,7 @@ namespace HtmlAgilityPack.Tests
                 var html = @"<dt>a</dt><dd>b</dd><dd>c</dd><dt>a</dt><dd>b</dd><dd>c</dd>";
                 var document = new HtmlDocument();
                 document.LoadHtml(html);
-                var result = document.DocumentNode.Descendants().Select(dn => new { dn.NodeType, dn.Name, dn.OuterHtml }).ToArray();
+                var result = document.DocumentNode.Descendants().Select(dn => new {dn.NodeType, dn.Name, dn.OuterHtml}).ToArray();
 
                 Assert.AreEqual(html, document.DocumentNode.OuterHtml);
             }
@@ -613,17 +683,39 @@ namespace HtmlAgilityPack.Tests
             Assert.AreEqual(expectedHtml, doc.DocumentNode.OuterHtml);
         }
 
-        //[Test]
-        //public void TestOptionTag()
-        //{
-        //    var html = "<select><option>Select a cell</option><option>C1</option><option value='\"c2\"'></select>";
+        [Test]
+        public void TestInnerText()
+        {
+            var inHtml = @"<html>
+	<head>
+		<title>
+			InnerText bug Demo
+		</title>
+	</head>
+	<body>
+		<div>
+			This demonstration should show that the HAP currently parses div tags incorrectly, parsing carriage returns, new lines and tabular indents as text.
+		</div>
+	</body>
+</html>";
+            var expectedHtml = "InnerText bug DemoThis demonstration should show that the HAP currently parses div tags incorrectly, parsing carriage returns, new lines and tabular indents as text.";
 
-        //    string output = "<select><option>Select a cell</option><option>C1</option><option value='\"c2\"'></option></select>";
-        //    var document = new HtmlDocument();
-        //    document.LoadHtml(html);
-        //    Assert.AreEqual(output, document.DocumentNode.OuterHtml);
-        //}
+            var doc = new HtmlDocument() {BackwardCompatibility = false};
+            doc.LoadHtml(inHtml);
 
+            Assert.AreEqual(expectedHtml, doc.DocumentNode.InnerText);
+        }
+
+        [Test]
+        public void TestOptionTag()
+        {
+            var html = "<select><option>Select a cell</option><option>C1</option><option value='\"c2\"'></select>";
+
+            string output = "<select><option>Select a cell</option><option>C1</option><option value='\"c2\"'></option></select>";
+            var document = new HtmlDocument();
+            document.LoadHtml(html);
+            Assert.AreEqual(output, document.DocumentNode.OuterHtml);
+        }
 
         [Test]
         public void VerifyChildDivParent()
@@ -661,5 +753,200 @@ namespace HtmlAgilityPack.Tests
 
         }
 
+
+        [Test]
+        public void GetEncapsulatedData()
+        {
+            HtmlWeb stackoverflowSite = new HtmlWeb();
+            HtmlDocument htmlDocument = stackoverflowSite.Load("https://stackoverflow.com/");
+            StackOverflowPage stackOverflowPage = htmlDocument.DocumentNode.GetEncapsulatedData<StackOverflowPage>();
+            IEnumerable<StackOverflowQuestion> filtered = stackOverflowPage.Questions.OrderByDescending(new Func<StackOverflowQuestion, int>(x => x.Statistics.Votes));
+           
+            Assert.IsTrue(filtered.Count() > 5);
+            Assert.IsTrue(filtered.ElementAt(0).Statistics.Votes > 0);
+
+        }
+
+        [Test]
+        public void CompareLowerCulture()
+        {
+
+            string html = File.ReadAllText(_contentDirectory + "regression.html");
+            HtmlNode node1 = null;
+            // Test 1
+            CultureInfo cul1 = CultureInfo.CreateSpecificCulture("en-US");
+            Thread.CurrentThread.CurrentCulture = cul1;
+            HtmlAgilityPack.HtmlDocument doc1 = new HtmlAgilityPack.HtmlDocument();
+            doc1.LoadHtml(html);
+
+            node1 = doc1.DocumentNode.SelectSingleNode("//div[@id='mainContents']/h2");
+
+            CultureInfo cul2 = CultureInfo.CreateSpecificCulture("tr-TR");
+            Thread.CurrentThread.CurrentCulture = cul2;
+            HtmlAgilityPack.HtmlDocument doc2 = new HtmlAgilityPack.HtmlDocument();
+            doc2.LoadHtml(html);
+            var s = doc2.DocumentNode.OuterHtml;
+
+            HtmlNode node2 = doc2.DocumentNode.SelectSingleNode("//div[@id='mainContents']/h2");
+            if (node1?.InnerHtml == node2?.InnerHtml)
+
+                 
+            Assert.AreEqual(node1?.InnerHtml, node2?.InnerHtml);
+            Assert.AreEqual(0, doc2.DocumentNode.OwnerDocument.ParseErrors.Count());
+        }
+
+
+        [Test]
+        public void OverFlowNotEndTag()
+        {
+
+            string html = File.ReadAllText(_contentDirectory + "overflow.html");
+            HtmlNode node1 = null;
+            // Test 1
+             
+            HtmlAgilityPack.HtmlDocument doc1 = new HtmlAgilityPack.HtmlDocument();
+            doc1.LoadHtml(html);
+
+            Assert.AreEqual(15, doc1.DocumentNode.ChildNodes[4].ChildNodes.Count);
+
+            Assert.AreEqual(0, doc1.DocumentNode.OwnerDocument.ParseErrors.Count());
+        }
+
+        [Test]
+        public void SanitizeXmlElementNameWithColon()
+        {
+            var input = @"<RootElement xmlns:MyNamespace=""value"">
+  <value:element />
+</RootElement>";
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(input);
+            htmlDoc.OptionDefaultStreamEncoding = System.Text.Encoding.UTF8;
+            htmlDoc.OptionOutputAsXml = true;
+            htmlDoc.OptionOutputOriginalCase = true;
+            var xmlDoc = htmlDoc.DocumentNode.WriteTo();
+
+            var expected = @"<?xml version=""1.0"" encoding=""utf-8""?>" +
+                           @"<RootElement xmlns:MyNamespace=""value"">
+  <_value3a_element></_value3a_element>
+</RootElement>";
+
+            Assert.AreEqual(expected, xmlDoc);
+        }
+
+        [Test]
+        public void DoesNotSanitizeXmlElementNameWithColonWhenConfiguredToPreserveXmlNamespaces()
+        {
+            var input = @"<RootElement xmlns:MyNamespace=""value"">
+  <value:element />
+</RootElement>";
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(input);
+            htmlDoc.OptionDefaultStreamEncoding = System.Text.Encoding.UTF8;
+            htmlDoc.OptionOutputAsXml = true;
+            htmlDoc.OptionOutputOriginalCase = true;
+            htmlDoc.OptionPreserveXmlNamespaces = true;
+            var xmlDoc = htmlDoc.DocumentNode.WriteTo();
+
+            var expected = @"<?xml version=""1.0"" encoding=""utf-8""?>" +
+                           @"<RootElement xmlns:MyNamespace=""value"">
+  <value:element></value:element>
+</RootElement>";
+
+            Assert.AreEqual(expected, xmlDoc);
+        }
+
+
+
+        [HasXPath]
+        public class StackOverflowPage
+        {
+            [XPath("//*[@id='question-mini-list']/div/div")]
+            public IEnumerable<StackOverflowQuestion> Questions { get; set; }
+
+            [XPath("//*[@id='hot-network-questions']/ul//li")]
+            public IEnumerable<HotNetworkQuestion> GetHotNetworkQuestions { get; set; }
+
+        }
+
+        [HasXPath]
+        [DebuggerDisplay("StackOverflowQuestion : {Question.QuestionTitle}")]
+        public class StackOverflowQuestion
+        {
+            [XPath("/div[@class='cp']")]
+            public StatisticsBox Statistics { get; set; }
+
+
+            [XPath("/div[@class='summary']")]
+            public QuestionBox Question { get; set; }
+
+
+            [XPath("/div[@class='summary']/div[@class='started']")]
+            public UserBox User { get; set; }
+
+        }
+
+        [HasXPath]
+        [DebuggerDisplay("Votes={Votes} , Answers={Answers} , Views={Views}")]
+        public class StatisticsBox
+        {
+            [XPath("/div[1]/div/span")]
+            public int Votes { get; set; }
+
+            [XPath("/div[2]/div/span")]
+            public int Answers { get; set; }
+
+            [XPath("/div[3]/div/span")]
+            public string Views { get; set; }
+
+
+        }
+
+        [HasXPath]
+        [DebuggerDisplay("QuestionTitle={QuestionTitle}")]
+        public class QuestionBox
+        {
+            [XPath("/h3/a")]
+            public string QuestionTitle { get; set; }
+
+            [XPath("/h3/a", "href")]
+            public string QuestionLink { get; set; }
+
+            [XPath("/div[starts-with(@class,'tags')]//a")]
+            public IEnumerable<string> Tags { get; set; }
+        }
+
+        [HasXPath]
+        [DebuggerDisplay("UserID={UserID} , ReputationScore={ReputationScore}")]
+        public class UserBox
+        {
+            [XPath("/a[1]/span", "title")]
+            public DateTime ExactTime { get; set; }
+
+            [XPath("/a[1]/span")]
+            public string RelativeTime { get; set; }
+
+            [XPath("/a[2]")]
+            public string UserID { get; set; }
+
+            [XPath("a[2]", "href")]
+            public string UserLink { get; set; }
+
+            [XPath("/span[@class='reputation-score']")]
+            public string ReputationScore { get; set; }
+        }
+
+        [HasXPath]
+        [DebuggerDisplay("Question Title={QuestionTitle}")]
+        public class HotNetworkQuestion
+        {
+            [XPath("/div", "title")]
+            public string QuestionCategory { get; set; }
+
+            [XPath("/a")]
+            public string QuestionTitle { get; set; }
+
+            [XPath("/a", "href")]
+            public string QuestionLink { get; set; }
+        }
     }
 }

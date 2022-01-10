@@ -1406,7 +1406,7 @@ namespace HtmlAgilityPack
 				// reroute grand children to ourselves
 				foreach (HtmlNode grandchild in oldChild._childnodes)
 				{
-					prev = InsertAfter(grandchild, prev);
+					InsertAfter(grandchild, prev);
 				}
 			}
 			RemoveChild(oldChild);
