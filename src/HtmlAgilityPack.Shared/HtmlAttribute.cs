@@ -150,6 +150,11 @@ namespace HtmlAgilityPack
                 if (_value == null)
                 {
                     _value = _ownerdocument.Text.Substring(_valuestartindex, _valuelength);
+
+                    if (!_ownerdocument.BackwardCompatibility)
+                    {
+                        _value = HtmlEntity.DeEntitize(_value);
+                    }
                 }
 
                 return _value;
@@ -178,7 +183,7 @@ namespace HtmlAgilityPack
 
         internal string XmlName
         {
-            get { return HtmlDocument.GetXmlName(Name); }
+            get { return HtmlDocument.GetXmlName(Name, true); }
         }
 
         internal string XmlValue
