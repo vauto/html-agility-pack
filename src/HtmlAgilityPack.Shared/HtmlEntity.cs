@@ -1,4 +1,10 @@
-// HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+// Description: Html Agility Pack - HTML Parsers, selectors, traversors, manupulators.
+// Website & Documentation: http://html-agility-pack.net
+// Forum & Issues: https://github.com/zzzprojects/html-agility-pack
+// License: https://github.com/zzzprojects/html-agility-pack/blob/master/LICENSE
+// More projects: http://www.zzzprojects.com/
+// Copyright © ZZZ Projects Inc. 2014 - 2017. All rights reserved.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,6 +15,8 @@ namespace HtmlAgilityPack
     /// <summary>
     /// A utility class to replace special characters by entities and vice-versa.
     /// Follows HTML 4.0 specification found at http://www.w3.org/TR/html4/sgml/entities.html
+    /// Follows Additional specification found at https://en.wikipedia.org/wiki/List_of_XML_and_HTML_character_entity_references
+    /// See also: https://html.spec.whatwg.org/multipage/named-characters.html#named-character-references
     /// </summary>
     public class HtmlEntity
     {
@@ -45,6 +53,16 @@ namespace HtmlAgilityPack
 
             #region Entities Definition
 
+            _entityValue.Add("quot", 34); // quotation mark = APL quote, U+0022 ISOnum 
+            _entityName.Add(34, "quot");
+            _entityValue.Add("amp", 38); // ampersand, U+0026 ISOnum 
+            _entityName.Add(38, "amp");
+            _entityValue.Add("apos", 39); // apostrophe-quote 	U+0027 (39)
+            _entityName.Add(39, "apos");
+            _entityValue.Add("lt", 60); // less-than sign, U+003C ISOnum 
+            _entityName.Add(60, "lt");
+            _entityValue.Add("gt", 62); // greater-than sign, U+003E ISOnum 
+            _entityName.Add(62, "gt");
             _entityValue.Add("nbsp", 160); // no-break space = non-breaking space, U+00A0 ISOnum 
             _entityName.Add(160, "nbsp");
             _entityValue.Add("iexcl", 161); // inverted exclamation mark, U+00A1 ISOnum 
@@ -493,14 +511,6 @@ namespace HtmlAgilityPack
             _entityName.Add(9829, "hearts");
             _entityValue.Add("diams", 9830); // black diamond suit, U+2666 ISOpub 
             _entityName.Add(9830, "diams");
-            _entityValue.Add("quot", 34); // quotation mark = APL quote, U+0022 ISOnum 
-            _entityName.Add(34, "quot");
-            _entityValue.Add("amp", 38); // ampersand, U+0026 ISOnum 
-            _entityName.Add(38, "amp");
-            _entityValue.Add("lt", 60); // less-than sign, U+003C ISOnum 
-            _entityName.Add(60, "lt");
-            _entityValue.Add("gt", 62); // greater-than sign, U+003E ISOnum 
-            _entityName.Add(62, "gt");
             _entityValue.Add("OElig", 338); // latin capital ligature OE, U+0152 ISOlat2 
             _entityName.Add(338, "OElig");
             _entityValue.Add("oelig", 339); // latin small ligature oe, U+0153 ISOlat2 
@@ -798,6 +808,10 @@ namespace HtmlAgilityPack
         {
             foreach (HtmlAttribute at in collection)
             {
+                if (at.Value == null)
+                {
+                    continue;
+                }
                 at.Value = Entitize(at.Value);
             }
         }

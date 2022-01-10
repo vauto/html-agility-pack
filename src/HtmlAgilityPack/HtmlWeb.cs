@@ -18,6 +18,7 @@ using Microsoft.Win32;
 #if NET45 || NETSTANDARD
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Threading;
 #endif
 
 #if FX40 || FX45
@@ -1148,6 +1149,16 @@ namespace HtmlAgilityPack
             return Load(url, "GET");
         }
 
+        /// <summary>
+        /// Gets an HTML document from an Internet resource.
+        /// </summary>
+        /// <param name="uri">The requested Uri, such as new Uri("http://Myserver/Mypath/Myfile.asp").</param>
+        /// <returns>A new HTML document.</returns>
+        public HtmlDocument Load(Uri uri)
+        {
+            return Load(uri, "GET");
+        }
+
 #if !NETSTANDARD
         /// <summary>
         /// Gets an HTML document from an Internet resource.
@@ -1179,6 +1190,37 @@ namespace HtmlAgilityPack
         }
 #endif
 
+#if !NETSTANDARD
+        /// <summary>
+        /// Gets an HTML document from an Internet resource.
+        /// </summary>
+        /// <param name="uri">The requested Uri, such as new Uri("http://Myserver/Mypath/Myfile.asp").</param>
+        /// <param name="proxyHost">Host to use for Proxy</param>
+        /// <param name="proxyPort">Port the Proxy is on</param>
+        /// <param name="userId">User Id for Authentication</param>
+        /// <param name="password">Password for Authentication</param>
+        /// <returns>A new HTML document.</returns>
+        public HtmlDocument Load(Uri uri, string proxyHost, int proxyPort, string userId, string password)
+        {
+            //Create my proxy
+            WebProxy myProxy = new WebProxy(proxyHost, proxyPort);
+            myProxy.BypassProxyOnLocal = true;
+
+            //Create my credentials
+            NetworkCredential myCreds = null;
+            if ((userId != null) && (password != null))
+            {
+                myCreds = new NetworkCredential(userId, password);
+                CredentialCache credCache = new CredentialCache();
+                //Add the creds
+                credCache.Add(myProxy.Address, "Basic", myCreds);
+                credCache.Add(myProxy.Address, "Digest", myCreds);
+            }
+
+            return Load(uri, "GET", myProxy, myCreds);
+        }
+#endif
+
         /// <summary>
         /// Loads an HTML document from an Internet resource.
         /// </summary>
@@ -1187,12 +1229,23 @@ namespace HtmlAgilityPack
         /// <returns>A new HTML document.</returns>
         public HtmlDocument Load(string url, string method)
         {
+            Uri uri = new Uri(url);
+
+            return Load(uri, method);
+        }
+        /// <summary>
+        /// Loads an HTML document from an Internet resource.
+        /// </summary>
+        /// <param name="uri">The requested URL, such as new Uri("http://Myserver/Mypath/Myfile.asp").</param>
+        /// <param name="method">The HTTP method used to open the connection, such as GET, POST, PUT, or PROPFIND.</param>
+        /// <returns>A new HTML document.</returns>
+        public HtmlDocument Load(Uri uri, string method)
+        {
             if (UsingCache)
             {
                 _usingCacheAndLoad = true;
             }
 
-            Uri uri = new Uri(url);
             HtmlDocument doc;
 #if !NETSTANDARD
             if ((uri.Scheme == Uri.UriSchemeHttps) ||
@@ -1218,9 +1271,9 @@ namespace HtmlAgilityPack
                     doc.OptionAutoCloseOnEnd = false;
                     doc.OptionAutoCloseOnEnd = true;
                     if (OverrideEncoding != null)
-                        doc.Load(url, OverrideEncoding);
+                        doc.Load(uri.OriginalString, OverrideEncoding);
                     else
-                        doc.DetectEncodingAndLoad(url, _autoDetectEncoding);
+                        doc.DetectEncodingAndLoad(uri.OriginalString, _autoDetectEncoding);
                 }
                 else
                 {
@@ -1245,12 +1298,28 @@ namespace HtmlAgilityPack
         /// <returns>A new HTML document.</returns>
         public HtmlDocument Load(string url, string method, WebProxy proxy, NetworkCredential credentials)
         {
+            Uri uri = new Uri(url);
+
+            return Load(uri, method, proxy, credentials);
+        }
+#endif
+
+#if !NETSTANDARD
+        /// <summary>
+        /// Loads an HTML document from an Internet resource.
+        /// </summary>
+        /// <param name="uri">The requested Uri, such as new Uri("http://Myserver/Mypath/Myfile.asp").</param>
+        /// <param name="method">The HTTP method used to open the connection, such as GET, POST, PUT, or PROPFIND.</param>
+        /// <param name="proxy">Proxy to use with this request</param>
+        /// <param name="credentials">Credentials to use when authenticating</param>
+        /// <returns>A new HTML document.</returns>
+        public HtmlDocument Load(Uri uri, string method, WebProxy proxy, NetworkCredential credentials)
+        {
             if (UsingCache)
             {
                 _usingCacheAndLoad = true;
             }
 
-            Uri uri = new Uri(url);
             HtmlDocument doc;
             if ((uri.Scheme == Uri.UriSchemeHttps) ||
                 (uri.Scheme == Uri.UriSchemeHttp))
@@ -1264,7 +1333,7 @@ namespace HtmlAgilityPack
                     doc = new HtmlDocument();
                     doc.OptionAutoCloseOnEnd = false;
                     doc.OptionAutoCloseOnEnd = true;
-                    doc.DetectEncodingAndLoad(url, _autoDetectEncoding);
+                    doc.DetectEncodingAndLoad(uri.OriginalString, _autoDetectEncoding);
                 }
                 else
                 {
@@ -1278,7 +1347,6 @@ namespace HtmlAgilityPack
             return doc;
         }
 #endif
-
 #if NET45 || NETSTANDARD
 /// <summary>
 /// Loads an HTML document from an Internet resource.
@@ -1290,12 +1358,27 @@ namespace HtmlAgilityPack
 /// <returns>A new HTML document.</returns>
 	    public HtmlDocument Load(string url, string method, IWebProxy proxy, ICredentials credentials)
 	    {
+            Uri uri = new Uri(url);
+            return Load(uri, method, proxy, credentials);
+	    }
+#endif
+
+#if NET45 || NETSTANDARD
+/// <summary>
+/// Loads an HTML document from an Internet resource.
+/// </summary>
+/// <param name="uri">The requested Uri, such as new Uri("http://Myserver/Mypath/Myfile.asp").</param>
+/// <param name="method">The HTTP method used to open the connection, such as GET, POST, PUT, or PROPFIND.</param>
+/// <param name="proxy">Proxy to use with this request</param>
+/// <param name="credentials">Credentials to use when authenticating</param>
+/// <returns>A new HTML document.</returns>
+	    public HtmlDocument Load(Uri uri, string method, IWebProxy proxy, ICredentials credentials)
+	    {
             if (UsingCache)
             {
                 _usingCacheAndLoad = true;
             }
 
-	        Uri uri = new Uri(url);
 	        HtmlDocument doc;
 #if !NETSTANDARD
             if (uri.Scheme == Uri.UriSchemeFile)
@@ -1318,7 +1401,7 @@ namespace HtmlAgilityPack
 	                doc = new HtmlDocument();
 	                doc.OptionAutoCloseOnEnd = false;
 	                doc.OptionAutoCloseOnEnd = true;
-	                doc.DetectEncodingAndLoad(url, _autoDetectEncoding);
+	                doc.DetectEncodingAndLoad(uri.OriginalString, _autoDetectEncoding);
 	            }
 	            else
 	            {
@@ -1332,7 +1415,6 @@ namespace HtmlAgilityPack
 	        return doc;
 	    }
 #endif
-
 #if !NETSTANDARD
         /// <summary>
         /// Loads an HTML document from an Internet resource and saves it to the specified XmlTextWriter.
@@ -1749,7 +1831,9 @@ namespace HtmlAgilityPack
 	            _requestDuration = Environment.TickCount - tc;
 	            _responseUri = response.RequestMessage.RequestUri;
 
-	            bool html = IsHtmlContent(response.Content.Headers.ContentType.MediaType);
+                bool isUnknown = response.Content.Headers.ContentType == null;
+                bool html = !isUnknown && IsHtmlContent(response.Content.Headers.ContentType.MediaType);
+
 	            var encoding = response.Content.Headers.ContentEncoding.FirstOrDefault();
 	            Encoding respenc = !string.IsNullOrEmpty(encoding)
 	                ? Encoding.GetEncoding(encoding)
@@ -1788,6 +1872,11 @@ namespace HtmlAgilityPack
 	                        IOLibrary.CopyAlways(cachePath, path);
 	                        File.SetLastWriteTime(path, File.GetLastWriteTime(cachePath));
 	                    }
+
+                        if (_usingCacheAndLoad)
+                        {
+                            doc.Load(cachePath);
+                        }
 	                }
 	                else
 	                {
@@ -1803,7 +1892,27 @@ namespace HtmlAgilityPack
 	                            doc.Load(s, true);
 	                        }
 	                    }
-	                }
+
+                        else if (doc != null && isUnknown)
+                        {
+                            try
+                            {
+                                if (respenc == null)
+                                {
+                                    doc.Load(s, true);
+                                }
+                                else
+                                {
+                                    doc.Load(s, respenc);
+                                }
+                            }
+                            catch
+                            {
+                                // That’s fine, the content type was unknown so probably not HTML
+                                // Perhaps trying to figure if the content contains some HTML before would be a better idea.
+                            }
+                        }
+                    }
 	            }
 	            status = response.StatusCode;
 	        }
@@ -1943,86 +2052,182 @@ namespace HtmlAgilityPack
 /// Begins the process of downloading an internet resource
 /// </summary>
 /// <param name="url">Url to the html document</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url)
+	    public Task<HtmlDocument> LoadFromWebAsync(string url)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), null, null);
+	        return LoadFromWebAsync(new Uri(url), null, null);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="url">Url to the html document</param>
-	    /// <param name="encoding">The encoding to use while downloading the document</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), null, null, cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), encoding, null);
+	        return LoadFromWebAsync(new Uri(url), encoding, null, CancellationToken.None);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="url">Url to the html document</param>
-	    /// <param name="encoding">The encoding to use while downloading the document</param>
-	    /// <param name="userName">Username to use for credentials in the web request</param>
-	    /// <param name="password">Password to use for credentials in the web request</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, string userName, string password)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), encoding, null, cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, string userName, string password)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), encoding, new NetworkCredential(userName, password));
+	        return LoadFromWebAsync(new Uri(url), encoding, new NetworkCredential(userName, password), CancellationToken.None);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="url">Url to the html document</param>
-	    /// <param name="encoding">The encoding to use while downloading the document</param>
-	    /// <param name="userName">Username to use for credentials in the web request</param>
-	    /// <param name="password">Password to use for credentials in the web request</param>
-	    /// <param name="domain">Domain to use for credentials in the web request</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, string userName, string password, string domain)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, string userName, string password, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), encoding, new NetworkCredential(userName, password), cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        /// <param name="domain">Domain to use for credentials in the web request</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, string userName, string password, string domain)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), encoding, new NetworkCredential(userName, password, domain));
+	        return LoadFromWebAsync(new Uri(url), encoding, new NetworkCredential(userName, password, domain), CancellationToken.None);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="url">Url to the html document</param>
-	    /// <param name="userName">Username to use for credentials in the web request</param>
-	    /// <param name="password">Password to use for credentials in the web request</param>
-	    /// <param name="domain">Domain to use for credentials in the web request</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url, string userName, string password, string domain)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        /// <param name="domain">Domain to use for credentials in the web request</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, Encoding encoding, string userName, string password, string domain, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), encoding, new NetworkCredential(userName, password, domain), cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        /// <param name="domain">Domain to use for credentials in the web request</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, string userName, string password, string domain)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), null, new NetworkCredential(userName, password, domain));
+	        return LoadFromWebAsync(new Uri(url), null, new NetworkCredential(userName, password, domain), CancellationToken.None);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="url">Url to the html document</param>
-	    /// <param name="userName">Username to use for credentials in the web request</param>
-	    /// <param name="password">Password to use for credentials in the web request</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url, string userName, string password)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        /// <param name="domain">Domain to use for credentials in the web request</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, string userName, string password, string domain, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), null, new NetworkCredential(userName, password, domain), cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, string userName, string password)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), null, new NetworkCredential(userName, password));
+	        return LoadFromWebAsync(new Uri(url), null, new NetworkCredential(userName, password), CancellationToken.None);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="url">Url to the html document</param>
-	    /// <param name="credentials">The credentials to use for authenticating the web request</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(string url, NetworkCredential credentials)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="userName">Username to use for credentials in the web request</param>
+        /// <param name="password">Password to use for credentials in the web request</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, string userName, string password, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), null, new NetworkCredential(userName, password), cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="credentials">The credentials to use for authenticating the web request</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, NetworkCredential credentials)
 	    {
-	        return await LoadFromWebAsync(new Uri(url), null, credentials);
+	        return LoadFromWebAsync(new Uri(url), null, credentials, CancellationToken.None);
 	    }
 
-	    /// <summary>
-	    /// Begins the process of downloading an internet resource
-	    /// </summary>
-	    /// <param name="uri">Url to the html document</param>
-	    /// <param name="encoding">The encoding to use while downloading the document</param>
-	    /// <param name="credentials">The credentials to use for authenticating the web request</param>
-	    public async Task<HtmlDocument> LoadFromWebAsync(Uri uri, Encoding encoding, NetworkCredential credentials)
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="url">Url to the html document</param>
+        /// <param name="credentials">The credentials to use for authenticating the web request</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public Task<HtmlDocument> LoadFromWebAsync(string url, NetworkCredential credentials, CancellationToken cancellationToken)
+        {
+            return LoadFromWebAsync(new Uri(url), null, credentials, cancellationToken);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="uri">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="credentials">The credentials to use for authenticating the web request</param>
+        public Task<HtmlDocument> LoadFromWebAsync(Uri uri, Encoding encoding, NetworkCredential credentials)
+        {
+            return LoadFromWebAsync(uri, encoding, credentials, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Begins the process of downloading an internet resource
+        /// </summary>
+        /// <param name="uri">Url to the html document</param>
+        /// <param name="encoding">The encoding to use while downloading the document</param>
+        /// <param name="credentials">The credentials to use for authenticating the web request</param>
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        public async Task<HtmlDocument> LoadFromWebAsync(Uri uri, Encoding encoding, NetworkCredential credentials, CancellationToken cancellationToken)
 	    {
 	        var clientHandler = new HttpClientHandler();
 	        if (credentials == null)
@@ -2032,19 +2237,19 @@ namespace HtmlAgilityPack
 
 	        var client = new HttpClient(clientHandler);
 
-	        var e = await client.GetAsync(uri);
+	        var e = await client.GetAsync(uri, cancellationToken).ConfigureAwait(false);
 	        if (e.StatusCode == HttpStatusCode.OK)
 	        {
 	            var html = string.Empty;
 	            if (encoding != null)
 	            {
-	                using (var sr = new StreamReader(await e.Content.ReadAsStreamAsync(), encoding))
+	                using (var sr = new StreamReader(await e.Content.ReadAsStreamAsync().ConfigureAwait(false), encoding))
 	                {
 	                    html = sr.ReadToEnd();
 	                }
 	            }
 	            else
-	                html = await e.Content.ReadAsStringAsync();
+	                html = await e.Content.ReadAsStringAsync().ConfigureAwait(false);
 	            var doc = new HtmlDocument();
 	            if (PreHandleDocument != null)
 	                PreHandleDocument(doc);

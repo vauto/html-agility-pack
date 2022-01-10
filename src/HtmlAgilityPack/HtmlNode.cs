@@ -106,7 +106,7 @@ namespace HtmlAgilityPack
 			ElementsFlags.Add("input", HtmlElementFlag.Empty);
 			ElementsFlags.Add("basefont", HtmlElementFlag.Empty);
 
-			ElementsFlags.Add("form", HtmlElementFlag.CanOverlap | HtmlElementFlag.Empty);
+			ElementsFlags.Add("form",  HtmlElementFlag.CanOverlap);
 
 			// they sometimes contain, and sometimes they don 't...
 			ElementsFlags.Add("option", HtmlElementFlag.Empty);
@@ -579,6 +579,20 @@ namespace HtmlAgilityPack
 			// REVIEW: this is *not* optimum...
 			HtmlDocument doc = new HtmlDocument();
 			doc.LoadHtml(html);
+            if(!doc.DocumentNode.IsSingleElementNode())
+            {
+                throw new Exception("Multiple node elments can't be created.");
+            }
+
+            var element = doc.DocumentNode.FirstChild;
+
+            while (element != null)
+            {
+                if (element.NodeType == HtmlNodeType.Element && element.OuterHtml != "\r\n")
+                    return element;
+
+                element = element.NextSibling;
+            }
 			return doc.DocumentNode.FirstChild;
 		}
 
@@ -1918,6 +1932,21 @@ namespace HtmlAgilityPack
 			return Name + "[" + i + "]";
 		}
 
+        private bool IsSingleElementNode()
+        {
+            int count = 0;
+            var element = FirstChild;
+
+            while (element != null)
+            {
+                if (element.NodeType == HtmlNodeType.Element && element.OuterHtml != "\r\n")
+                    count++;
+
+                element = element.NextSibling;
+            }
+
+            return count <= 1 ? true : false;
+        }
         #endregion
 
         #region Class Helper
