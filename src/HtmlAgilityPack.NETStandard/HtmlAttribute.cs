@@ -138,7 +138,7 @@ namespace HtmlAgilityPack
             {
                 if (_value == null)
                 {
-                    _value = _ownerdocument.Text.Substring(_valuestartindex, _valuelength);
+                    _value = HtmlEntity.DeEntitize(_ownerdocument.Text.Substring(_valuestartindex, _valuelength));
                 }
                 return _value;
             }

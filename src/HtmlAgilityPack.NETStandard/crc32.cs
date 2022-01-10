@@ -1,4 +1,7 @@
 // HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+
+using System;
+
 namespace HtmlAgilityPack
 {
     /// <summary>
@@ -80,6 +83,7 @@ namespace HtmlAgilityPack
         /// </summary>
         /// <param name="bytes">The array of bytes to compute the checksum for.</param>
         /// <returns>The computed checksum.</returns>
+        [CLSCompliant(false)]
         public static uint CRC32Bytes(byte[] bytes)
         {
             uint oldcrc32;
@@ -99,6 +103,7 @@ namespace HtmlAgilityPack
         /// </summary>
         /// <param name="text">The string to compute the checksum for.</param>
         /// <returns>The computed checksum.</returns>
+        [CLSCompliant(false)]
         public static uint CRC32String(string text)
         {
             uint oldcrc32;

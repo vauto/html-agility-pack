@@ -1,4 +1,8 @@
 // HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+
+using System;
+using System.IO;
+
 namespace HtmlAgilityPack
 {
     /// <summary>
@@ -44,7 +48,7 @@ namespace HtmlAgilityPack
                 {
                     return base.OuterHtml;
                 }
-                return _text;
+                return HtmlDocument.HtmlEncode(_text);
             }
         }
 
@@ -57,13 +61,20 @@ namespace HtmlAgilityPack
             {
                 if (_text == null)
                 {
-                    return base.OuterHtml;
+                    return HtmlEntity.DeEntitize(base.OuterHtml);
                 }
                 return _text;
             }
             set { _text = value; }
         }
 
+        public override void WriteTo(TextWriter outText)
+        {
+            if (outText == null)
+                throw new ArgumentNullException("outText");
+            outText.Write(OuterHtml);
+        }
+        
         #endregion
     }
 }
