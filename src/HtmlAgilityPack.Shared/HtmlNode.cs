@@ -96,6 +96,7 @@ namespace HtmlAgilityPack
             ElementsFlags.Add("script", HtmlElementFlag.CData);
             ElementsFlags.Add("style", HtmlElementFlag.CData);
             ElementsFlags.Add("noxhtml", HtmlElementFlag.CData);
+            ElementsFlags.Add("textarea", HtmlElementFlag.CData);
 
             // tags that can not contain other tags
             ElementsFlags.Add("base", HtmlElementFlag.Empty);
@@ -565,7 +566,9 @@ namespace HtmlAgilityPack
                     return string.Empty;
                 }
 
-                return _ownerdocument.Text.Substring(_outerstartindex, _outerlength);
+                if (_ownerdocument.Text != null && _outerstartindex + _outerlength <= _ownerdocument.Text.Length)
+                    return _ownerdocument.Text.Substring(_outerstartindex, _outerlength);
+                return string.Empty;
             }
         }
 
@@ -1762,7 +1765,7 @@ namespace HtmlAgilityPack
                         else
                             WriteContentTo(outText, level);
 
-                        if (!_isImplicitEnd)
+                        if (_ownerdocument.OptionOutputAsXml || !_isImplicitEnd)
                         {
                             outText.Write("</" + name);
                             if (!_ownerdocument.OptionOutputAsXml)

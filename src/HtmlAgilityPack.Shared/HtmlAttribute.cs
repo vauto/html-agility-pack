@@ -83,10 +83,12 @@ namespace HtmlAgilityPack
             get { return _valuelength; }
         }
 
-        /// <summary>
-        /// Gets the qualified name of the attribute.
-        /// </summary>
-        public string Name
+	    public bool UseOriginalName { get; set; } = false;
+
+	    /// <summary>
+		/// Gets the qualified name of the attribute.
+		/// </summary>
+		public string Name
         {
             get
             {
@@ -95,8 +97,8 @@ namespace HtmlAgilityPack
                     _name = _ownerdocument.Text.Substring(_namestartindex, _namelength);
                 }
 
-                return _name.ToLowerInvariant();
-            }
+	            return UseOriginalName ? _name : _name.ToLowerInvariant();
+			}
             set
             {
                 if (value == null)
@@ -168,7 +170,10 @@ namespace HtmlAgilityPack
 
                 if (_value == null)
                 {
-                    _value = _ownerdocument.Text.Substring(_valuestartindex, _valuelength);
+                    if (_ownerdocument.Text != null && _valuestartindex + _valuelength <= _ownerdocument.Text.Length)
+                        _value = _ownerdocument.Text.Substring(_valuestartindex, _valuelength);
+                    else
+                        _value = "";
 
                     if (!_ownerdocument.BackwardCompatibility)
                     {

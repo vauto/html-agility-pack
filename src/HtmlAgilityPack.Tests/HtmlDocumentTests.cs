@@ -83,6 +83,48 @@ namespace HtmlAgilityPack.Tests
         }
 
         [Test]
+        public void TextInsideScriptTagShouldHaveCorrectStreamPosition()
+        {
+            {
+                var document = new HtmlDocument();
+                document.LoadHtml(@"<scrapt>foo</scrapt>");
+                var scraptText = document.DocumentNode.FirstChild.FirstChild;
+                Assert.AreEqual(8, scraptText.StreamPosition);
+                Assert.AreEqual(1, scraptText.Line);
+                Assert.AreEqual(9, scraptText.LinePosition);
+            }
+            {
+                var document = new HtmlDocument();
+                document.LoadHtml(@"<script>foo</script>");
+                var scriptText = document.DocumentNode.FirstChild.FirstChild;
+                Assert.AreEqual(8, scriptText.StreamPosition);
+                Assert.AreEqual(1, scriptText.Line);
+                Assert.AreEqual(9, scriptText.LinePosition);
+            }
+            {
+                var document = new HtmlAgilityPack.HtmlDocument();
+                document.LoadHtml(@"
+<scrapt>foo</scrapt>");
+                var scraptText = document.DocumentNode.LastChild.FirstChild;
+                //   var aa = scraptText.FirstChild;
+                Assert.AreEqual(10, scraptText.StreamPosition);
+                Assert.AreEqual(2, scraptText.Line);
+                Assert.AreEqual(9, scraptText.LinePosition);
+            }
+
+
+            {
+                var document = new HtmlAgilityPack.HtmlDocument();
+                document.LoadHtml(@"
+<script>foo</script>");
+                var scriptText = document.DocumentNode.LastChild.FirstChild;
+                Assert.AreEqual(10, scriptText.StreamPosition);
+                Assert.AreEqual(2, scriptText.Line);
+                Assert.AreEqual(9, scriptText.LinePosition);
+            }
+        }
+
+        [Test]
         public void CreateAttribute()
         {
             var doc = new HtmlDocument();
@@ -106,6 +148,21 @@ namespace HtmlAgilityPack.Tests
             var a = doc.CreateAttribute("href", "http://something.com");
             Assert.AreEqual("href", a.Name);
             Assert.AreEqual("http://something.com", a.Value);
+        }
+
+        [Test]
+        public void testTEXTAREA()
+        {
+            {
+                var doc = new HtmlAgilityPack.HtmlDocument();
+                doc.LoadHtml(@"<script><div>hello</div></script><TEXTAREA>Text in the <div>hello</div>area</TEXTAREA>");
+                HtmlNodeCollection divs = doc.DocumentNode.SelectNodes("//div");
+
+                Assert.IsNull(divs);
+
+                HtmlNode ta = doc.DocumentNode.SelectSingleNode("//textarea");
+                Assert.IsTrue(ta.InnerHtml.Contains("div"));
+            }
         }
 
         //[Test]
