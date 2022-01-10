@@ -150,6 +150,11 @@ namespace HtmlAgilityPack
                 if (_value == null)
                 {
                     _value = _ownerdocument.Text.Substring(_valuestartindex, _valuelength);
+
+                    if (true) // XXX this is a BackwardCompatibility flag in 1.6.10+, our version needs it though.
+                    {
+                        _value = HtmlEntity.DeEntitize(_value);
+                    }
                 }
 
                 return _value;
