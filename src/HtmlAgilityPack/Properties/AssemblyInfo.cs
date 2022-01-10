@@ -6,8 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 
+[assembly: CLSCompliant(true)]
 #if DEBUG
-
+// Assembly marked as compliant.
 [assembly: AssemblyTitle("Html Agility Pack - Debug")] //Description
 #else // release
 #if TRACE
@@ -25,10 +26,10 @@ using System.Security;
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(true)]
 [assembly: Guid("643622ea-d2aa-4572-a2b2-6202b7fcd83f")]
-[assembly: AssemblyVersion("1.5.0")]
+[assembly: AssemblyVersion("1.6.0")]
 #if !PocketPC
-[assembly: AssemblyFileVersion("1.5.0")]
-[assembly: AssemblyInformationalVersion("1.5.0")]
+[assembly: AssemblyFileVersion("1.6.0")]
+[assembly: AssemblyInformationalVersion("1.6.0")]
 #if !SILVERLIGHT
 [assembly: AllowPartiallyTrustedCallers]
 #endif

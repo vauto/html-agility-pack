@@ -1,4 +1,10 @@
-// HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+// Description: Html Agility Pack - HTML Parsers, selectors, traversors, manupulators.
+// Website & Documentation: http://html-agility-pack.net
+// Forum & Issues: https://github.com/zzzprojects/html-agility-pack
+// License: https://github.com/zzzprojects/html-agility-pack/blob/master/LICENSE
+// More projects: http://www.zzzprojects.com/
+// Copyright � ZZZ Projects Inc. 2014 - 2017. All rights reserved.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,6 +21,7 @@ namespace HtmlAgilityPack
     {
         #region Manager
 
+        /// <summary>True to disable, false to enable the behavaior tag p.</summary>
         public static bool DisableBehavaiorTagP;
 
         #endregion
@@ -179,6 +186,13 @@ namespace HtmlAgilityPack
 
         #region Properties
 
+        /// <summary>Gets the parsed text.</summary>
+        /// <value>The parsed text.</value>
+        public string ParsedText
+        {
+            get { return Text; } 
+        }
+
         /// <summary>
         /// Defines the max level we would go deep into the html document. If this depth level is exceeded, and exception is
         /// thrown.
@@ -274,6 +288,7 @@ namespace HtmlAgilityPack
                 // names are lcase
                 // note: we are very limited here, too much?
                 if (((name[i] >= 'a') && (name[i] <= 'z')) ||
+                    ((name[i] >= 'A') && (name[i] <= 'Z')) || 
                     ((name[i] >= '0') && (name[i] <= '9')) ||
                     //					(name[i]==':') || (name[i]=='_') || (name[i]=='-') || (name[i]=='.')) // these are bads in fact
                     (name[i] == '_') || (name[i] == '-') || (name[i] == '.'))
@@ -311,6 +326,7 @@ namespace HtmlAgilityPack
             {
                 throw new ArgumentNullException("html");
             }
+
             // replace & by &amp; but only once!
             return HtmlEncodeRegex.Replace(html, "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         }
@@ -1067,7 +1083,7 @@ namespace HtmlAgilityPack
             switch (name)
             {
                 case "li":
-                    return new string[] {"ul"};
+                    return new string[] {"ul", "ol"};
 
                 case "tr":
                     return new string[] {"table"};
@@ -1102,10 +1118,16 @@ namespace HtmlAgilityPack
             }
         }
 
+        private bool IsValidTag()
+        {
+            bool isValidTag = _c == '<' && _index < Text.Length && (Char.IsLetter(Text[_index]) || Text[_index] == '/' || Text[_index] == '!' || Text[_index] == '%');
+            return isValidTag;
+        }
+
         /// <remarks>Called ONLY from parser</remarks>
         private bool NewCheck()
         {
-            if (_c != '<')
+            if (_c != '<' || !IsValidTag())
             {
                 return false;
             }
@@ -1228,6 +1250,12 @@ namespace HtmlAgilityPack
                             continue;
                         if (IsWhiteSpace(_c))
                         {
+                            // CHECK if parent must be implicitely closed
+                            if (IsParentImplicitEnd())
+                            {
+                                CloseParentImplicitEnd();
+                            }
+
                             PushNodeNameEnd(_index - 1);
                             if (_state != ParseState.Tag)
                                 continue;
@@ -1236,6 +1264,12 @@ namespace HtmlAgilityPack
                         }
                         if (_c == '/')
                         {
+                            // CHECK if parent must be implicitely closed
+                            if (IsParentImplicitEnd())
+                            {
+                                CloseParentImplicitEnd();
+                            }
+
                             PushNodeNameEnd(_index - 1);
                             if (_state != ParseState.Tag)
                                 continue;
@@ -1244,6 +1278,12 @@ namespace HtmlAgilityPack
                         }
                         if (_c == '>')
                         {
+                            // CHECK if parent must be implicitely closed
+                            if (IsParentImplicitEnd())
+                            {
+                                CloseParentImplicitEnd();
+                            }
+
                             PushNodeNameEnd(_index - 1);
                             if (_state != ParseState.Tag)
                                 continue;
@@ -1555,6 +1595,9 @@ namespace HtmlAgilityPack
                 }
             }
 
+            // TODO: Add implicit end here?
+             
+            
             // finish the current work
             if (_currentnode._namestartindex > 0)
             {
@@ -1590,6 +1633,44 @@ namespace HtmlAgilityPack
         private void PushAttributeValueStart(int index)
         {
             PushAttributeValueStart(index, 0);
+        }
+
+        private bool IsParentImplicitEnd()
+        {
+            // MUST be a start tag
+            if (!_currentnode._starttag) return false;
+
+            bool isImplicitEnd = false;
+
+            var parent = _lastparentnode.Name;
+            var nodeName = Text.Substring(_currentnode._namestartindex, _index - _currentnode._namestartindex - 1);
+
+            switch (parent)
+            {
+                case "a":
+                    isImplicitEnd = nodeName == "a";
+                    break;
+                case "dd":
+                    isImplicitEnd = nodeName == "dt" || nodeName == "dd";
+                    break;
+                case "dt":
+                    isImplicitEnd = nodeName == "dt" || nodeName == "dd";
+                    break;
+                case "p":
+                    isImplicitEnd = nodeName == "p";
+                    break;
+            }
+
+            return isImplicitEnd;
+        }
+
+        private void CloseParentImplicitEnd()
+        {
+            HtmlNode close = new HtmlNode(_lastparentnode.NodeType, this, -1);
+            close._endnode = close;
+            close._isImplicitEnd = true;
+            _lastparentnode._isImplicitEnd = true;
+            _lastparentnode.CloseNode(close);
         }
 
         private void PushAttributeValueStart(int index, int quote)
@@ -1744,7 +1825,7 @@ namespace HtmlAgilityPack
 						if (_declaredencoding.WebName != _streamencoding.WebName)
 #else
                         if (_declaredencoding != null)
-                            if (_declaredencoding.WindowsCodePage != _streamencoding.WindowsCodePage)
+                            if (_declaredencoding.CodePage != _streamencoding.CodePage)
 #endif
                             {
                                 AddError(

@@ -1,4 +1,10 @@
-// HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+// Description: Html Agility Pack - HTML Parsers, selectors, traversors, manupulators.
+// Website & Documentation: http://html-agility-pack.net
+// Forum & Issues: https://github.com/zzzprojects/html-agility-pack
+// License: https://github.com/zzzprojects/html-agility-pack/blob/master/LICENSE
+// More projects: http://www.zzzprojects.com/
+// Copyright © ZZZ Projects Inc. 2014 - 2017. All rights reserved.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -225,6 +231,9 @@ namespace HtmlAgilityPack
             HtmlNode prev = null;
             HtmlNode oldnode = _items[index];
 
+            // KEEP a reference since it will be set to null
+            var parentNode = _parentnode ?? oldnode._parentnode;
+
             if (index > 0)
                 prev = _items[index - 1];
 
@@ -247,7 +256,10 @@ namespace HtmlAgilityPack
             oldnode._nextnode = null;
             oldnode._parentnode = null;
 
-            _parentnode.SetChanged();
+            if (parentNode != null)
+            {
+                parentNode.SetChanged();
+            }
         }
 
         #endregion

@@ -1,4 +1,10 @@
-// HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+// Description: Html Agility Pack - HTML Parsers, selectors, traversors, manupulators.
+// Website & Documentation: http://html-agility-pack.net
+// Forum & Issues: https://github.com/zzzprojects/html-agility-pack
+// License: https://github.com/zzzprojects/html-agility-pack/blob/master/LICENSE
+// More projects: http://www.zzzprojects.com/
+// Copyright © ZZZ Projects Inc. 2014 - 2017. All rights reserved.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -46,15 +52,16 @@ namespace HtmlAgilityPack
 		internal HtmlNode _prevwithsamename;
 		internal bool _starttag;
 		internal int _streamposition;
+	    internal bool _isImplicitEnd;
 
-		#endregion
+        #endregion
 
-		#region Static Members
+        #region Static Members
 
-		/// <summary>
-		/// Gets the name of a comment node. It is actually defined as '#comment'.
-		/// </summary>
-		public static readonly string HtmlNodeTypeNameComment = "#comment";
+        /// <summary>
+        /// Gets the name of a comment node. It is actually defined as '#comment'.
+        /// </summary>
+        public static readonly string HtmlNodeTypeNameComment = "#comment";
 
 		/// <summary>
 		/// Gets the name of the document node. It is actually defined as '#document'.
@@ -105,8 +112,8 @@ namespace HtmlAgilityPack
 			ElementsFlags.Add("area", HtmlElementFlag.Empty);
 			ElementsFlags.Add("input", HtmlElementFlag.Empty);
 			ElementsFlags.Add("basefont", HtmlElementFlag.Empty);
-
-			ElementsFlags.Add("form", HtmlElementFlag.CanOverlap | HtmlElementFlag.Empty);
+		    ElementsFlags.Add("source", HtmlElementFlag.Empty);
+            ElementsFlags.Add("form",  HtmlElementFlag.CanOverlap);
 
 			// they sometimes contain, and sometimes they don 't...
 			ElementsFlags.Add("option", HtmlElementFlag.Empty);
@@ -366,12 +373,13 @@ namespace HtmlAgilityPack
 				if (_nodetype == HtmlNodeType.Text)
 					return ((HtmlTextNode)this).Text;
 
-				if (_nodetype == HtmlNodeType.Comment)
-					return ((HtmlCommentNode)this).Comment;
+                // Don't display comment or comment child nodes
+                if (_nodetype == HtmlNodeType.Comment)
+                    return "";
 
-				// note: right now, this method is *slow*, because we recompute everything.
-				// it could be optimized like innerhtml
-				if (!HasChildNodes)
+                // note: right now, this method is *slow*, because we recompute everything.
+                // it could be optimized like innerhtml
+                if (!HasChildNodes)
 					return string.Empty;
 
 				// cdonnelly 2007-10-22: InnerText should be the sum of all nested Element and Text nodes.
@@ -579,6 +587,20 @@ namespace HtmlAgilityPack
 			// REVIEW: this is *not* optimum...
 			HtmlDocument doc = new HtmlDocument();
 			doc.LoadHtml(html);
+            if(!doc.DocumentNode.IsSingleElementNode())
+            {
+                throw new Exception("Multiple node elments can't be created.");
+            }
+
+            var element = doc.DocumentNode.FirstChild;
+
+            while (element != null)
+            {
+                if (element.NodeType == HtmlNodeType.Element && element.OuterHtml != "\r\n")
+                    return element;
+
+                element = element.NextSibling;
+            }
 			return doc.DocumentNode.FirstChild;
 		}
 
@@ -1605,28 +1627,37 @@ namespace HtmlAgilityPack
 						else
 							WriteContentTo(outText, level);
 
-						outText.Write("</" + name);
-						if (!_ownerdocument.OptionOutputAsXml)
-							WriteAttributes(outText, true);
+					    if (!_isImplicitEnd)
+					    {
+					        outText.Write("</" + name);
+					        if (!_ownerdocument.OptionOutputAsXml)
+					            WriteAttributes(outText, true);
 
-						outText.Write(">");
-					}
+					        outText.Write(">");
+					    }
+                    }
+
 					else
 					{
-						if (IsEmptyElement(Name))
-						{
-							if ((_ownerdocument.OptionWriteEmptyNodes) || (_ownerdocument.OptionOutputAsXml))
-								outText.Write(" />");
-							else
-							{
-								if (Name.Length > 0 && Name[0] == '?')
-									outText.Write("?");
+					    if (IsEmptyElement(Name))
+					    {
+					        if ((_ownerdocument.OptionWriteEmptyNodes) || (_ownerdocument.OptionOutputAsXml))
+					            outText.Write(" />");
+					        else
+					        {
+					            if (Name.Length > 0 && Name[0] == '?')
+					                outText.Write("?");
 
-								outText.Write(">");
-							}
-						}
-						else
-							outText.Write("></" + name + ">");
+					            outText.Write(">");
+					        }
+					    }
+					    else
+					    {
+					        if (!_isImplicitEnd)
+					        {
+					            outText.Write("></" + name + ">");
+                            }
+					    }
 					}
 					break;
 			}
@@ -1727,7 +1758,8 @@ namespace HtmlAgilityPack
 		internal static string GetXmlComment(HtmlCommentNode comment)
 		{
 			string s = comment.Comment;
-			return s.Substring(4, s.Length - 7).Replace("--", " - -");
+            s = s.Substring(4, s.Length - 7).Replace("--", " - -");
+            return s;
 		}
 
 		internal static void WriteAttributes(XmlWriter writer, HtmlNode node)
@@ -1810,6 +1842,12 @@ namespace HtmlAgilityPack
 
 		internal void WriteAttribute(TextWriter outText, HtmlAttribute att)
 		{
+		    if (att.Value == null)
+		    {   
+                // null value attribute are not written
+		        return;
+		    }
+
 			string name;
 			string quote = att.QuoteType == AttributeValueQuote.DoubleQuote ? "\"" : "'";
 			if (_ownerdocument.OptionOutputAsXml)
@@ -1918,6 +1956,21 @@ namespace HtmlAgilityPack
 			return Name + "[" + i + "]";
 		}
 
+        private bool IsSingleElementNode()
+        {
+            int count = 0;
+            var element = FirstChild;
+
+            while (element != null)
+            {
+                if (element.NodeType == HtmlNodeType.Element && element.OuterHtml != "\r\n")
+                    count++;
+
+                element = element.NextSibling;
+            }
+
+            return count <= 1 ? true : false;
+        }
         #endregion
 
         #region Class Helper
@@ -2016,7 +2069,12 @@ namespace HtmlAgilityPack
 	        {
 	            foreach (var att in classAttributes)
 	            {
-	                if (att.Value.Equals(name))
+	                if (att.Value == null)
+	                {
+	                    continue;
+	                }
+
+                    if (att.Value.Equals(name))
 	                {
 	                    Attributes.Remove(att);
 	                }
@@ -2087,6 +2145,11 @@ namespace HtmlAgilityPack
 
 	        foreach (var att in classAttributes)
 	        {
+	            if (att.Value == null)
+	            {
+	                continue;
+	            }
+
                 if (att.Value.Equals(oldClass) || att.Value.Contains(oldClass))
                 {
                     string newClassNames = att.Value.Replace(oldClass, newClass);
