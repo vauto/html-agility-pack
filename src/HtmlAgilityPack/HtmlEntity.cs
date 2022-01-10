@@ -643,17 +643,15 @@ namespace HtmlAgilityPack
                                     {
                                         // named entity?
                                         int code;
-                                        object o = _entityValue[entity.ToString()];
-                                        if (o == null)
+                                        if (_entityValue.TryGetValue(entity.ToString(), out code))
                                         {
-                                            // nope
-                                            sb.Append("&" + entity + ";");
+                                            // we found one
+                                            sb.Append(Convert.ToChar(code));
                                         }
                                         else
                                         {
-                                            // we found one
-                                            code = (int) o;
-                                            sb.Append(Convert.ToChar(code));
+                                            // nope
+                                            sb.Append("&" + entity + ";");
                                         }
                                     }
                                     entity.Remove(0, entity.Length);
@@ -771,8 +769,8 @@ namespace HtmlAgilityPack
                 if ((code > 127) ||
                     (entitizeQuotAmpAndLtGt && ((code == 34) || (code == 38) || (code == 60) || (code == 62))))
                 {
-                    string entity = _entityName[code] as string;
-                    if ((entity == null) || (!useNames))
+                    string entity;
+                    if (!_entityName.TryGetValue(code, out entity) || (!useNames))
                     {
                         sb.Append("&#" + code + ";");
                     }

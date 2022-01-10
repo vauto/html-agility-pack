@@ -197,11 +197,18 @@ namespace HtmlAgilityPack
         }
 
         /// <summary>
-        /// Inserts the specified attribute as the last attribute in the collection.
+        /// Inserts the specified attribute as the last attribute in the collection,
+        /// but does not mark the node as changed.
         /// </summary>
         /// <param name="newAttribute">The attribute to insert. May not be null.</param>
         /// <returns>The appended attribute.</returns>
-        public HtmlAttribute Append(HtmlAttribute newAttribute)
+        /// <remarks>
+        /// This should only be called from two places:
+        ///     - the parser
+        ///     - <see cref="Append(HtmlAttribute)"/>
+        /// Everything else should call <see cref="Append(HtmlAttribute)"/>.
+        /// </remarks>
+        internal HtmlAttribute DoAppend(HtmlAttribute newAttribute)
         {
             if (newAttribute == null)
             {
@@ -212,6 +219,17 @@ namespace HtmlAgilityPack
             newAttribute._ownernode = _ownernode;
             items.Add(newAttribute);
 
+            return newAttribute;
+        }
+
+        /// <summary>
+        /// Inserts the specified attribute as the last attribute in the collection.
+        /// </summary>
+        /// <param name="newAttribute">The attribute to insert. May not be null.</param>
+        /// <returns>The appended attribute.</returns>
+        public HtmlAttribute Append(HtmlAttribute newAttribute)
+        {
+            newAttribute = DoAppend(newAttribute);
             _ownernode.SetChanged();
             return newAttribute;
         }

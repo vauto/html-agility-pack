@@ -282,6 +282,8 @@ namespace HtmlAgilityPack
 			return "_" + xmlname;
 		}
 
+		private static readonly Regex HtmlEncodeRegex = new Regex("&(?!(amp;)|(lt;)|(gt;)|(quot;))", RegexOptions.IgnoreCase);
+
 		/// <summary>
 		/// Applies HTML encoding to a specified string.
 		/// </summary>
@@ -294,8 +296,7 @@ namespace HtmlAgilityPack
 				throw new ArgumentNullException("html");
 			}
 			// replace & by &amp; but only once!
-			Regex rx = new Regex("&(?!(amp;)|(lt;)|(gt;)|(quot;))", RegexOptions.IgnoreCase);
-			return rx.Replace(html, "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+			return HtmlEncodeRegex.Replace(html, "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 		}
 
 		/// <summary>
@@ -790,7 +791,7 @@ namespace HtmlAgilityPack
 			if (!OptionUseIdAttribute)
 				return;
 
-			if ((Nodesid == null) || (id == null))
+			if ((Nodesid == null) || (string.IsNullOrEmpty(id)))
 				return;
 
 			if (node == null)
@@ -946,7 +947,9 @@ namespace HtmlAgilityPack
 
 		private string CurrentNodeName()
 		{
-			return Text.Substring(_currentnode._namestartindex, _currentnode._namelength);
+//			return Text.Substring(_currentnode._namestartindex, _currentnode._namelength);
+			// DH 20071121 HtmlNode.Name does this and does the ToLower();
+			return _currentnode.Name;
 		}
 
 
@@ -1065,6 +1068,7 @@ namespace HtmlAgilityPack
 			}
 		}
 
+		/// <remarks>Called ONLY from parser</remarks>
 		private bool NewCheck()
 		{
 			if (_c != '<')
@@ -1514,10 +1518,11 @@ namespace HtmlAgilityPack
 			Lastnodes.Clear();
 		}
 
+		/// <remarks>Called ONLY from parser</remarks>
 		private void PushAttributeNameEnd(int index)
 		{
 			_currentattribute._namelength = index - _currentattribute._namestartindex;
-			_currentnode.Attributes.Append(_currentattribute);
+			_currentnode.Attributes.DoAppend(_currentattribute);
 		}
 
 		private void PushAttributeNameStart(int index)
@@ -1546,6 +1551,7 @@ namespace HtmlAgilityPack
 				_currentattribute.QuoteType = AttributeValueQuote.SingleQuote;
 		}
 
+		/// <remarks>Called ONLY from parser methods</remarks>
 		private bool PushNodeEnd(int index, bool close)
 		{
 			_currentnode._outerlength = index - _currentnode._outerstartindex;
@@ -1560,7 +1566,7 @@ namespace HtmlAgilityPack
 					_currentnode._innerstartindex = _currentnode._outerstartindex;
 					if (_lastparentnode != null)
 					{
-						_lastparentnode.AppendChild(_currentnode);
+						_lastparentnode.DoAppendChild(_currentnode);
 					}
 				}
 			}
@@ -1571,7 +1577,7 @@ namespace HtmlAgilityPack
 					// add to parent node
 					if (_lastparentnode != null)
 					{
-						_lastparentnode.AppendChild(_currentnode);
+						_lastparentnode.DoAppendChild(_currentnode);
 					}
 
 					ReadDocumentEncoding(_currentnode);

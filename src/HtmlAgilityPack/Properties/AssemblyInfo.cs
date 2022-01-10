@@ -1,4 +1,6 @@
 // HtmlAgilityPack V1.0 - Simon Mourier <simon underscore mourier at hotmail dot com>
+
+using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -46,3 +48,6 @@ using System.Security;
 //
 
 [assembly: AssemblyKeyName("")]
+
+[assembly: CLSCompliant(true)]
+[assembly: AssemblyDescriptionAttribute("codeplex.com@99964; $Rev$")]

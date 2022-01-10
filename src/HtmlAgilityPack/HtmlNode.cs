@@ -81,7 +81,7 @@ namespace HtmlAgilityPack
 		static HtmlNode()
 		{
 			// tags whose content may be anything
-			ElementsFlags = new Dictionary<string, HtmlElementFlag>();
+			ElementsFlags = new Dictionary<string, HtmlElementFlag>(StringComparer.OrdinalIgnoreCase);
 			ElementsFlags.Add("script", HtmlElementFlag.CData);
 			ElementsFlags.Add("style", HtmlElementFlag.CData);
 			ElementsFlags.Add("noxhtml", HtmlElementFlag.CData);
@@ -369,9 +369,19 @@ namespace HtmlAgilityPack
 				if (!HasChildNodes)
 					return string.Empty;
 
+				// cdonnelly 2007-10-22: InnerText should be the sum of all nested Element and Text nodes.
+				// Nested comments should *not* be included.
 				string s = null;
 				foreach (HtmlNode node in ChildNodes)
-					s += node.InnerText;
+				{
+					switch (node.NodeType)
+					{
+						case HtmlNodeType.Element:
+						case HtmlNodeType.Text:
+							s += node.InnerText;
+							break;
+					}
+				}
 				return s;
 			}
 		}
@@ -545,12 +555,12 @@ namespace HtmlAgilityPack
 				throw new ArgumentNullException("name");
 			}
 
-			if (!ElementsFlags.ContainsKey(name.ToLower()))
+			HtmlElementFlag flag;
+			if (!ElementsFlags.TryGetValue(name, out flag))
 			{
 				return false;
 			}
 
-			HtmlElementFlag flag = ElementsFlags[name.ToLower()];
 			return (flag & HtmlElementFlag.CanOverlap) != 0;
 		}
 
@@ -579,12 +589,12 @@ namespace HtmlAgilityPack
 				throw new ArgumentNullException("name");
 			}
 
-			if (!ElementsFlags.ContainsKey(name.ToLower()))
+			HtmlElementFlag flag;
+			if (!ElementsFlags.TryGetValue(name, out flag))
 			{
 				return false;
 			}
 
-			HtmlElementFlag flag = ElementsFlags[name.ToLower()];
 			return (flag & HtmlElementFlag.CData) != 0;
 		}
 
@@ -600,12 +610,12 @@ namespace HtmlAgilityPack
 				throw new ArgumentNullException("name");
 			}
 
-			if (!ElementsFlags.ContainsKey(name.ToLower()))
+			HtmlElementFlag flag;
+			if (!ElementsFlags.TryGetValue(name, out flag))
 			{
 				return false;
 			}
 
-			HtmlElementFlag flag = ElementsFlags[name.ToLower()];
 			return (flag & HtmlElementFlag.Closed) != 0;
 		}
 
@@ -638,12 +648,12 @@ namespace HtmlAgilityPack
 				return true;
 			}
 
-			if (!ElementsFlags.ContainsKey(name.ToLower()))
+			HtmlElementFlag flag;
+			if (!ElementsFlags.TryGetValue(name, out flag))
 			{
 				return false;
 			}
 
-			HtmlElementFlag flag = ElementsFlags[name.ToLower()];
 			return (flag & HtmlElementFlag.Empty) != 0;
 		}
 
@@ -726,11 +736,17 @@ namespace HtmlAgilityPack
 		}
 
 		/// <summary>
-		/// Adds the specified node to the end of the list of children of this node.
+		/// Adds the specified node to the end of the list of children of this node, but does not mark the node as changed.
 		/// </summary>
 		/// <param name="newChild">The node to add. May not be null.</param>
 		/// <returns>The node added.</returns>
-		public HtmlNode AppendChild(HtmlNode newChild)
+		/// <remarks>
+		/// This should only be called from two places:
+		///     - the parser
+		///     - <see cref="AppendChild"/>
+		/// Everything else should call <see cref="AppendChild"/>.
+		/// </remarks>
+		internal HtmlNode DoAppendChild(HtmlNode newChild)
 		{
 			if (newChild == null)
 			{
@@ -739,7 +755,18 @@ namespace HtmlAgilityPack
 
 			ChildNodes.Append(newChild);
 			_ownerdocument.SetIdForNode(newChild, newChild.GetId());
-            SetChanged();
+			return newChild;
+		}
+
+		/// <summary>
+		/// Adds the specified node to the end of the list of children of this node.
+		/// </summary>
+		/// <param name="newChild">The node to add. May not be null.</param>
+		/// <returns>The node added.</returns>
+		public HtmlNode AppendChild(HtmlNode newChild)
+		{
+			newChild = DoAppendChild(newChild);
+			SetChanged();
 			return newChild;
 		}
 
@@ -822,6 +849,7 @@ namespace HtmlAgilityPack
 					return node;
 
 				case HtmlNodeType.Text:
+					Debug.Assert(this is HtmlTextNode, "only HtmlTextNode should have HtmlNodeType.Text");
 					((HtmlTextNode)node).Text = ((HtmlTextNode)this).Text;
 					return node;
 			}
@@ -1453,8 +1481,10 @@ namespace HtmlAgilityPack
 		/// </summary>
 		/// <param name="outText">The TextWriter to which you want to save.</param>
         /// <param name="level">identifies the level we are in starting at root with 0</param>
-		public void WriteTo(TextWriter outText, int level=0)
+		public virtual void WriteTo(TextWriter outText, int level=0)
 		{
+			if (outText == null)
+				throw new ArgumentNullException("outText");
             string html;
 			switch (_nodetype)
 			{
@@ -1507,9 +1537,7 @@ namespace HtmlAgilityPack
 					break;
 
 				case HtmlNodeType.Text:
-					html = ((HtmlTextNode)this).Text;
-					outText.Write(_ownerdocument.OptionOutputAsXml ? HtmlDocument.HtmlEncode(html) : html);
-					break;
+					throw new NotSupportedException(); // subclass should do it.
 
 				case HtmlNodeType.Element:
 					string name = _ownerdocument.OptionOutputUpperCase ? Name.ToUpper() : Name;
