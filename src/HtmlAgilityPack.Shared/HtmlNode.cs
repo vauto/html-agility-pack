@@ -40,7 +40,7 @@ namespace HtmlAgilityPack
 		internal int _innerstartindex;
 		internal int _line;
 		internal int _lineposition;
-		private string _name;
+	    private string _name;
 		internal int _namelength;
 		internal int _namestartindex;
 		internal HtmlNode _nextnode;
@@ -96,6 +96,7 @@ namespace HtmlAgilityPack
 			ElementsFlags.Add("script", HtmlElementFlag.CData);
 			ElementsFlags.Add("style", HtmlElementFlag.CData);
 			ElementsFlags.Add("noxhtml", HtmlElementFlag.CData);
+			ElementsFlags.Add("textarea", HtmlElementFlag.CData);
 
 			// tags that can not contain other tags
 			ElementsFlags.Add("base", HtmlElementFlag.Empty);
@@ -478,7 +479,7 @@ namespace HtmlAgilityPack
 		/// </summary>
 		public int InnerLength
 		{
-			get { return _innerlength; }
+			get { return InnerHtml.Length; }
 		}
 
 		/// <summary>
@@ -486,8 +487,8 @@ namespace HtmlAgilityPack
 		/// </summary>
 		public int OuterLength
 		{
-			get { return _outerlength; }
-		}
+		    get { return OuterHtml.Length; }
+        }
 
 		/// <summary>
 		/// Gets or sets this node's name.
@@ -560,7 +561,7 @@ namespace HtmlAgilityPack
 					return _outerhtml;
 				}
 
-				if (_outerstartindex < 0 || _outerlength < 0) 
+				if (_outerstartindex < 0 || _outerlength < 0)
 				{
 					return string.Empty;
 				}
@@ -948,7 +949,7 @@ namespace HtmlAgilityPack
 		public HtmlNode CloneNode(bool deep)
 		{
 			HtmlNode node = _ownerdocument.CreateNode(_nodetype);
-			node.Name = Name;
+			node.Name = OriginalName;
 
 			switch (_nodetype)
 			{
@@ -995,7 +996,7 @@ namespace HtmlAgilityPack
 			// child nodes
 			foreach (HtmlNode child in _childnodes)
 			{
-				HtmlNode newchild = child.Clone();
+				HtmlNode newchild = child.CloneNode(deep);
 				node.AppendChild(newchild);
 			}
 
@@ -1386,16 +1387,16 @@ namespace HtmlAgilityPack
 		/// <param name="newChildren">The node list to add. May not be <c>null</c>.</param>
 		public void PrependChildren(HtmlNodeCollection newChildren)
 		{
-			if (newChildren == null)
-			{
-				throw new ArgumentNullException("newChildren");
-			}
+		    if (newChildren == null)
+		    {
+		        throw new ArgumentNullException("newChildren");
+		    }
 
-			foreach (HtmlNode newChild in newChildren)
-			{
-				PrependChild(newChild);
-			}
-		}
+		    for (int i = newChildren.Count - 1; i >= 0; i--)
+		    {
+		        PrependChild(newChildren[i]);
+		    }
+        }
 
 		/// <summary>
 		/// Removes node from parent collection
@@ -1636,8 +1637,6 @@ namespace HtmlAgilityPack
 		/// <param name="level">identifies the level we are in starting at root with 0</param>
 		public virtual void WriteTo(TextWriter outText, int level = 0)
 		{
-			if (outText == null)
-				throw new ArgumentNullException("outText");
 			string html;
 			switch (_nodetype)
 			{
@@ -1666,7 +1665,7 @@ namespace HtmlAgilityPack
 #if SILVERLIGHT || PocketPC || METRO || NETSTANDARD1_3 || NETSTANDARD1_6
 						outText.Write("<?xml version=\"1.0\" encoding=\"" + _ownerdocument.GetOutEncoding().WebName + "\"?>");
 #else
-						outText.Write("<?xml version=\"1.0\" encoding=\"" + _ownerdocument.GetOutEncoding().BodyName + "\"?>");
+                        outText.Write("<?xml version=\"1.0\" encoding=\"" + _ownerdocument.GetOutEncoding().BodyName + "\"?>");
 #endif
 						// check there is a root element
 						if (_ownerdocument.DocumentNode.HasChildNodes)
@@ -1764,7 +1763,7 @@ namespace HtmlAgilityPack
 						else
 							WriteContentTo(outText, level);
 
-						if (!_isImplicitEnd)
+						if (_ownerdocument.OptionOutputAsXml || !_isImplicitEnd)
 						{
 							outText.Write("</" + name);
 							if (!_ownerdocument.OptionOutputAsXml)
@@ -1794,6 +1793,10 @@ namespace HtmlAgilityPack
 							{
 								outText.Write("></" + name + ">");
 							}
+							else
+							{
+								outText.Write(">");
+							}
 						}
 					}
 
@@ -1819,9 +1822,9 @@ namespace HtmlAgilityPack
 													  "version=\"1.0\" encoding=\"" +
 													  _ownerdocument.GetOutEncoding().WebName + "\"");
 #else
-					writer.WriteProcessingInstruction("xml",
-						"version=\"1.0\" encoding=\"" +
-						_ownerdocument.GetOutEncoding().BodyName + "\"");
+                    writer.WriteProcessingInstruction("xml",
+                        "version=\"1.0\" encoding=\"" +
+                        _ownerdocument.GetOutEncoding().BodyName + "\"");
 #endif
 
 					if (HasChildNodes)
@@ -1963,7 +1966,7 @@ namespace HtmlAgilityPack
 				_innerlength = endnode._outerstartindex - _innerstartindex;
 
 				// update full length
-				_outerlength = (endnode._outerstartindex + endnode._outerlength) - _outerstartindex;
+				_outerlength = (endnode._outerstartindex + endnode._outerlength) - _outerstartindex; 
 			}
 		}
 
@@ -1994,7 +1997,7 @@ namespace HtmlAgilityPack
 			string quote = att.QuoteType == AttributeValueQuote.DoubleQuote ? "\"" : "'";
 			if (_ownerdocument.OptionOutputAsXml)
 			{
-				name = _ownerdocument.OptionOutputUpperCase ? att.XmlName.ToUpperInvariant() : att.XmlName;
+				name = _ownerdocument.OptionOutputUpperCase ? att.XmlName.ToUpperInvariant(): att.XmlName;
 				if (_ownerdocument.OptionOutputOriginalCase)
 					name = att.OriginalName;
 
@@ -2312,7 +2315,7 @@ namespace HtmlAgilityPack
 
 		/// <summary>Gets the CSS Class from the node.</summary>
 		/// <returns>
-		///		The CSS Class from the node
+		///     The CSS Class from the node
 		/// </returns>
 		public IEnumerable<string> GetClasses()
 		{
@@ -2320,7 +2323,7 @@ namespace HtmlAgilityPack
 
 			foreach (var att in classAttributes)
 			{
-				var classNames = att.Value.Split(new string[] {" "}, StringSplitOptions.RemoveEmptyEntries);
+				var classNames = att.Value.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
 
 				foreach (var className in classNames)
 				{
@@ -2338,7 +2341,7 @@ namespace HtmlAgilityPack
 
 			foreach (var @class in classes)
 			{
-				var classNames = @class.Split(' ');
+				var classNames = @class.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
 				foreach (var theClassName in classNames)
 				{
 					if (theClassName == className)
