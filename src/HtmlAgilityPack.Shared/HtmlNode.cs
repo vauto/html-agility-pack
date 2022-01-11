@@ -128,7 +128,7 @@ namespace HtmlAgilityPack
 			//<br> see above
 			ElementsFlags.Add("br", HtmlElementFlag.Empty | HtmlElementFlag.Closed);
 
-		    if (!HtmlDocument.DisableBehavaiorTagP)
+		    if (!HtmlDocument.DisableBehaviorTagP)
 		    {
 		        ElementsFlags.Add("p", HtmlElementFlag.Empty | HtmlElementFlag.Closed);
 		    }
@@ -618,6 +618,12 @@ namespace HtmlAgilityPack
 				return basePath + GetRelativeXpath();
 			}
 		}
+
+
+		/// <summary>
+		/// The depth of the node relative to the opening root html element. This value is used to determine if a document has to many nested html nodes which can cause stack overflows
+		/// </summary>
+		public int Depth { get; set; }
 
 		#endregion
 
@@ -1878,6 +1884,23 @@ namespace HtmlAgilityPack
 			}
 		}
 
+		/// <summary>
+		/// Sets the parent Html node and properly determines the current node's depth using the parent node's depth.
+		/// </summary>
+		public void SetParent(HtmlNode parent)
+		{
+			if (parent == null)
+				return;
+
+			ParentNode = parent;
+			if (OwnerDocument.OptionMaxNestedChildNodes > 0)
+			{
+				Depth = parent.Depth + 1;
+				if (Depth > OwnerDocument.OptionMaxNestedChildNodes)
+					throw new Exception(string.Format("Document has more than {0} nested tags. This is likely due to the page not closing tags properly.", OwnerDocument.OptionMaxNestedChildNodes));
+			}
+		}
+
 		#endregion
 
 		#region Internal Methods
@@ -1919,6 +1942,38 @@ namespace HtmlAgilityPack
 			}
 		}
 
+		internal void UpdateLastNode()
+		{
+			HtmlNode newLast = null;
+			if (_prevwithsamename == null || !_prevwithsamename._starttag)
+			{
+				foreach (var openNode in _ownerdocument.Openednodes)
+				{
+					if ((openNode.Key < _outerstartindex || openNode.Key > (_outerstartindex + _outerlength)) && openNode.Value._name == _name)
+					{
+						if (newLast == null && openNode.Value._starttag)
+						{
+							newLast = openNode.Value;
+						}
+						else if (newLast !=null && newLast.InnerStartIndex < openNode.Key && openNode.Value._starttag)
+						{
+							newLast = openNode.Value;
+						}
+					}
+				}
+			}
+			else
+			{
+				newLast = _prevwithsamename;
+			}
+			
+
+			if (newLast != null)
+			{
+				_ownerdocument.Lastnodes[newLast.Name] = newLast;
+			}
+		}
+
 		internal void CloseNode(HtmlNode endnode, int level = 0)
 		{
 			if (level > HtmlDocument.MaxDepthLevel)
@@ -1956,6 +2011,12 @@ namespace HtmlAgilityPack
 				{
 					_ownerdocument.Lastnodes.Remove(Name);
 					_ownerdocument.UpdateLastParentNode();
+
+
+					if (_starttag && !String.IsNullOrEmpty(Name))
+					{
+						UpdateLastNode();
+					}
 				}
 
 				if (endnode == this)

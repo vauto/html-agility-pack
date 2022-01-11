@@ -21,8 +21,32 @@ namespace HtmlAgilityPack
     {
         #region Manager
 
-        /// <summary>True to disable, false to enable the behavaior tag p.</summary>
-        public static bool DisableBehavaiorTagP = true;
+        internal static bool _disableBehaviorTagP = true;
+
+        /// <summary>True to disable, false to enable the behavior tag p.</summary>
+        public static bool DisableBehaviorTagP
+        {
+            get => _disableBehaviorTagP;
+            set
+            {
+                if (value)
+                {
+                    if (HtmlNode.ElementsFlags.ContainsKey("p"))
+                    {
+                        HtmlNode.ElementsFlags.Remove("p");
+                    }
+                }
+                else
+                {
+                    if (!HtmlNode.ElementsFlags.ContainsKey("p"))
+                    {
+                        HtmlNode.ElementsFlags.Add("p", HtmlElementFlag.Empty | HtmlElementFlag.Closed);
+                    }
+                }
+
+                _disableBehaviorTagP = value;
+            }
+        }
 
         /// <summary>Default builder to use in the HtmlDocument constructor</summary>
         public static Action<HtmlDocument> DefaultBuilder { get; set; }
@@ -170,11 +194,18 @@ namespace HtmlAgilityPack
         /// </summary>
         public bool OptionWriteEmptyNodes;
 
-        #endregion
+	    /// <summary>
+	    /// The max number of nested child nodes. 
+	    /// Added to prevent stackoverflow problem when a page has tens of thousands of opening html tags with no closing tags 
+	    /// </summary>
+	    public int OptionMaxNestedChildNodes = 0;
 
-        #region Static Members
 
-        internal static readonly string HtmlExceptionRefNotChild = "Reference node must be a child of this node";
+		#endregion
+
+		#region Static Members
+
+		internal static readonly string HtmlExceptionRefNotChild = "Reference node must be a child of this node";
 
         internal static readonly string HtmlExceptionUseIdAttributeFalse = "You need to set UseIdAttribute property to true to enable this feature";
 
@@ -1092,7 +1123,7 @@ namespace HtmlAgilityPack
         private void DecrementPosition()
         {
             _index--;
-            if (_lineposition == 1)
+            if (_lineposition == 0)
             {
                 _lineposition = _maxlineposition;
                 _line--;
@@ -1189,7 +1220,7 @@ namespace HtmlAgilityPack
             _maxlineposition = _lineposition;
             if (_c == 10)
             {
-                _lineposition = 1;
+                _lineposition = 0;
                 _line++;
             }
             else
@@ -1228,7 +1259,7 @@ namespace HtmlAgilityPack
                             break;
 
                         case ParseState.BetweenAttributes:
-                            PushAttributeNameStart(_index - 1);
+                            PushAttributeNameStart(_index - 1, _lineposition -1);
                             break;
 
                         case ParseState.WhichTag:
@@ -1255,7 +1286,7 @@ namespace HtmlAgilityPack
             {
                 if (Text[_index] == '!')
                 {
-                    PushNodeStart(HtmlNodeType.Comment, _index - 1);
+                    PushNodeStart(HtmlNodeType.Comment, _index - 1, _lineposition -1);
                     PushNodeNameStart(true, _index);
                     PushNodeNameEnd(_index + 1);
                     _state = ParseState.Comment;
@@ -1276,7 +1307,7 @@ namespace HtmlAgilityPack
                 }
             }
 
-            PushNodeStart(HtmlNodeType.Element, _index - 1);
+            PushNodeStart(HtmlNodeType.Element, _index - 1,  _lineposition - 1);
             return true;
         }
 
@@ -1298,8 +1329,8 @@ namespace HtmlAgilityPack
             _fullcomment = false;
             _parseerrors = new List<HtmlParseError>();
             _line = 1;
-            _lineposition = 1;
-            _maxlineposition = 1;
+            _lineposition = 0;
+            _maxlineposition = 0;
 
             _state = ParseState.Text;
             _oldstate = _state;
@@ -1312,7 +1343,7 @@ namespace HtmlAgilityPack
             _currentattribute = null;
 
             _index = 0;
-            PushNodeStart(HtmlNodeType.Text, 0);
+            PushNodeStart(HtmlNodeType.Text, 0, _lineposition);
             while (_index < Text.Length)
             {
                 _c = Text[_index];
@@ -1391,7 +1422,7 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.Tag)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                         }
 
                         break;
@@ -1421,11 +1452,11 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.BetweenAttributes)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
-                        PushAttributeNameStart(_index - 1);
+                        PushAttributeNameStart(_index - 1, _lineposition -1);
                         _state = ParseState.AttributeName;
                         break;
 
@@ -1445,7 +1476,7 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.EmptyTag)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
@@ -1496,7 +1527,7 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.AttributeName)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
@@ -1520,7 +1551,7 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.AttributeBeforeEquals)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
@@ -1562,7 +1593,7 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.AttributeAfterEquals)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
@@ -1594,7 +1625,7 @@ namespace HtmlAgilityPack
                             if (_state != ParseState.AttributeValue)
                                 continue;
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
@@ -1645,7 +1676,7 @@ namespace HtmlAgilityPack
                             }
 
                             _state = ParseState.Text;
-                            PushNodeStart(HtmlNodeType.Text, _index);
+                            PushNodeStart(HtmlNodeType.Text, _index, _lineposition);
                             continue;
                         }
 
@@ -1706,11 +1737,11 @@ namespace HtmlAgilityPack
                                     script._outerlength = _index - 1 - script._outerstartindex;
                                     script._streamposition = script._outerstartindex;
                                     script._line = _currentnode.Line;
-                                    script._lineposition = _currentnode.LinePosition + _currentnode._namelength + 2;   
-                                    _currentnode.AppendChild(script);
+                                    script._lineposition = _currentnode.LinePosition + _currentnode._namelength + 2;
+									_currentnode.AppendChild(script);
 
 
-                                    PushNodeStart(HtmlNodeType.Element, _index - 1);
+                                    PushNodeStart(HtmlNodeType.Element, _index - 1, _lineposition -1);
                                     PushNodeNameStart(false, _index - 1 + 2);
                                     _state = ParseState.Tag;
                                     IncrementPosition();
@@ -1744,12 +1775,12 @@ namespace HtmlAgilityPack
             _currentnode.Attributes.DoAppend(_currentattribute);
         }
 
-        private void PushAttributeNameStart(int index)
+        private void PushAttributeNameStart(int index, int lineposition)
         {
             _currentattribute = CreateAttribute();
             _currentattribute._namestartindex = index;
             _currentattribute.Line = _line;
-            _currentattribute._lineposition = _lineposition;
+            _currentattribute._lineposition = lineposition;
             _currentattribute._streamposition = index;
         }
 
@@ -1820,7 +1851,7 @@ namespace HtmlAgilityPack
                     isImplicitEnd = nodeName == "li";
                     break;
                 case "p":
-                    if (DisableBehavaiorTagP)
+                    if (DisableBehaviorTagP)
                     {
                         isImplicitEnd = nodeName == "address"
                                         || nodeName == "article"
@@ -2058,16 +2089,11 @@ namespace HtmlAgilityPack
             _currentnode._namestartindex = index;
         }
 
-        private void PushNodeStart(HtmlNodeType type, int index)
+        private void PushNodeStart(HtmlNodeType type, int index, int lineposition)
         {
             _currentnode = CreateNode(type, index);
             _currentnode._line = _line;
-            _currentnode._lineposition = _lineposition;
-            if (type == HtmlNodeType.Element)
-            {
-                _currentnode._lineposition--;
-            }
-
+            _currentnode._lineposition = lineposition;
             _currentnode._streamposition = index;
         }
 
