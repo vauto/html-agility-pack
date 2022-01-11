@@ -128,11 +128,11 @@ namespace HtmlAgilityPack
 			//<br> see above
 			ElementsFlags.Add("br", HtmlElementFlag.Empty | HtmlElementFlag.Closed);
 
-			if (!HtmlDocument.DisableBehavaiorTagP)
-			{
-				ElementsFlags.Add("p", HtmlElementFlag.Empty | HtmlElementFlag.Closed);
-			}
-		}
+		    if (!HtmlDocument.DisableBehavaiorTagP)
+		    {
+		        ElementsFlags.Add("p", HtmlElementFlag.Empty | HtmlElementFlag.Closed);
+		    }
+        }
 
 		/// <summary>
 		/// Initializes HtmlNode, providing type, owner and where it exists in a collection
@@ -1775,10 +1775,7 @@ namespace HtmlAgilityPack
 
 					else
 					{
-
-						if (IsEmptyElement(Name) 
-						    && name != "p" // never consider "P" as an empty element when writing, only parsing for backward compatibility
-						    )
+						if (IsEmptyElement(Name))
 						{
 							if ((_ownerdocument.OptionWriteEmptyNodes) || (_ownerdocument.OptionOutputAsXml))
 								outText.Write(" />");
