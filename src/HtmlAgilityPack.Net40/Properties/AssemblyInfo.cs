@@ -47,6 +47,3 @@ using System.Security;
 //
 
 [assembly: AssemblyKeyName("")]
-
-[assembly: CLSCompliant(true)]
-[assembly: AssemblyDescriptionAttribute("codeplex.com@99964; $Rev$")]

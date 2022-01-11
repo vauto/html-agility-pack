@@ -3,7 +3,7 @@
 // Forum & Issues: https://github.com/zzzprojects/html-agility-pack
 // License: https://github.com/zzzprojects/html-agility-pack/blob/master/LICENSE
 // More projects: http://www.zzzprojects.com/
-// Copyright ï¿½ ZZZ Projects Inc. 2014 - 2017. All rights reserved.
+// Copyright © ZZZ Projects Inc. 2014 - 2017. All rights reserved.
 
 using System;
 
@@ -92,7 +92,6 @@ namespace HtmlAgilityPack
         /// </summary>
         /// <param name="bytes">The array of bytes to compute the checksum for.</param>
         /// <returns>The computed checksum.</returns>
-        [CLSCompliant(false)]
         public static uint CRC32Bytes(byte[] bytes)
         {
             uint oldcrc32;
@@ -113,7 +112,6 @@ namespace HtmlAgilityPack
         /// </summary>
         /// <param name="text">The string to compute the checksum for.</param>
         /// <returns>The computed checksum.</returns>
-        [CLSCompliant(false)]
         public static uint CRC32String(string text)
         {
             uint oldcrc32;
