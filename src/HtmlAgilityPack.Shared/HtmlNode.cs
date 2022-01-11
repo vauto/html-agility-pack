@@ -377,7 +377,7 @@ namespace HtmlAgilityPack
 		{
 			get
 			{
-				string result;
+				var sb = new StringBuilder(); 
 				string name = this.Name;
 	 
 				if (name != null)
@@ -385,52 +385,56 @@ namespace HtmlAgilityPack
 					name = name.ToLowerInvariant();
 
 					bool isDisplayScriptingText = (name == "head" || name == "script" || name == "style"); 
-
-					result = InternalInnerText(isDisplayScriptingText);
+					 
+					InternalInnerText(sb, isDisplayScriptingText);
 				}
 				else
-				{
-                    result = InternalInnerText(false);
+				{ 
+					InternalInnerText(sb, false);
 				} 
 			 
-				return result;
+				return sb.ToString();
 			}
 		}
 
-		internal virtual string InternalInnerText(bool isDisplayScriptingText)
-		{  
-				if (!_ownerdocument.BackwardCompatibility)
-				{
-					if (HasChildNodes)
-					{
-						StringBuilder sb = new StringBuilder();
-						AppendInnerText(sb, isDisplayScriptingText);
-						return sb.ToString();
-					}
+        internal virtual void InternalInnerText(StringBuilder sb, bool isDisplayScriptingText)
+        {
+            if (!_ownerdocument.BackwardCompatibility)
+            {
+                if (HasChildNodes)
+                {
+                    AppendInnerText(sb, isDisplayScriptingText);
+                    return;
+                }
 
-					return GetCurrentNodeText();
-				}
+                sb.Append(GetCurrentNodeText());
+                return;
+            }
 
-				if (_nodetype == HtmlNodeType.Text)
-					return ((HtmlTextNode) this).Text;
+            if (_nodetype == HtmlNodeType.Text)
+            {
+                sb.Append(((HtmlTextNode) this).Text);
+                return;
+            }
 
-				// Don't display comment or comment child nodes
-				if (_nodetype == HtmlNodeType.Comment)
-					return "";
+            // Don't display comment or comment child nodes
+            if (_nodetype == HtmlNodeType.Comment)
+            {
+                return;
+            }
 
-				// note: right now, this method is *slow*, because we recompute everything.
-				// it could be optimized like innerhtml
-				if (!HasChildNodes || ( _isHideInnerText && !isDisplayScriptingText))
-					return string.Empty;
+            // note: right now, this method is *slow*, because we recompute everything.
+            // it could be optimized like innerhtml
+            if (!HasChildNodes || (_isHideInnerText && !isDisplayScriptingText))
+            {
+                return;
+            }
 
-				// XXX removing our fix here that enforced only child element/text nodes.
-				string s = null;
-				foreach (HtmlNode node in ChildNodes)
-					s += node.InternalInnerText(isDisplayScriptingText);
-				return s;
+            foreach (HtmlNode node in ChildNodes)
+                node.InternalInnerText(sb, isDisplayScriptingText);
         }
 
-		/// <summary>Gets direct inner text.</summary>
+        /// <summary>Gets direct inner text.</summary>
 		/// <returns>The direct inner text.</returns>
 		public virtual string GetDirectInnerText()
 		{
@@ -454,18 +458,18 @@ namespace HtmlAgilityPack
 				return "";
 
 			if (!HasChildNodes)
-				return string.Empty;
+				return string.Empty; 
 
-			string s = null;
-            foreach (HtmlNode node in ChildNodes)
+			var s = new StringBuilder();
+			foreach (HtmlNode node in ChildNodes)
             {
                 if (node._nodetype == HtmlNodeType.Text)
                 {
-                    s += ((HtmlTextNode)node).Text;
+                    s.Append(((HtmlTextNode)node).Text);
                 }
             }
 	
-			return s;
+			return s.ToString();
 	 
 		}
 
@@ -2025,20 +2029,23 @@ namespace HtmlAgilityPack
 			HtmlNode newLast = null;
 			if (_prevwithsamename == null || !_prevwithsamename._starttag)
 			{
-				foreach (var openNode in _ownerdocument.Openednodes)
-				{
-					if ((openNode.Key < _outerstartindex || openNode.Key > (_outerstartindex + _outerlength)) && openNode.Value._name == _name)
-					{
-						if (newLast == null && openNode.Value._starttag)
-						{
-							newLast = openNode.Value;
-						}
-						else if (newLast !=null && newLast.InnerStartIndex < openNode.Key && openNode.Value._starttag)
-						{
-							newLast = openNode.Value;
-						}
-					}
-				}
+                if (_ownerdocument.Openednodes != null)
+                {
+                    foreach (var openNode in _ownerdocument.Openednodes)
+                    {
+                        if ((openNode.Key < _outerstartindex || openNode.Key > (_outerstartindex + _outerlength)) && openNode.Value._name == _name)
+                        {
+                            if (newLast == null && openNode.Value._starttag)
+                            {
+                                newLast = openNode.Value;
+                            }
+                            else if (newLast != null && newLast.InnerStartIndex < openNode.Key && openNode.Value._starttag)
+                            {
+                                newLast = openNode.Value;
+                            }
+                        }
+                    }
+                }
 			}
 			else
 			{
