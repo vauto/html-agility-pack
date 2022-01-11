@@ -605,7 +605,7 @@ namespace HtmlAgilityPack
 					if (_name == null)
 						_optimizedName = string.Empty;
 					else
-						_optimizedName = _name.ToLowerInvariant();
+						_optimizedName = this.OwnerDocument.OptionDefaultUseOriginalName ? _name : _name.ToLowerInvariant();
 				}
 
 				return _optimizedName;
@@ -780,7 +780,7 @@ namespace HtmlAgilityPack
 
 			if (!doc.DocumentNode.IsSingleElementNode())
 			{
-				throw new Exception("Multiple node elments can't be created.");
+				throw new Exception("Multiple node elements can't be created.");
 			}
 
 			var element = doc.DocumentNode.FirstChild;
@@ -2332,7 +2332,10 @@ namespace HtmlAgilityPack
 			}
 
 			var quoteType = OwnerDocument.GlobalAttributeValueQuote ?? att.QuoteType;
-            if (quoteType == AttributeValueQuote.Initial)
+			var isWithoutValue = quoteType == AttributeValueQuote.WithoutValue
+						 || (quoteType == AttributeValueQuote.Initial && string.IsNullOrEmpty(att.XmlValue));
+
+			if (quoteType == AttributeValueQuote.Initial && !string.IsNullOrEmpty(att.XmlValue))
             {
                 quoteType = att.InternalQuoteType;
             }
@@ -2345,7 +2348,14 @@ namespace HtmlAgilityPack
 				if (_ownerdocument.OptionOutputOriginalCase)
 					name = att.OriginalName;
 
-				outText.Write(" " + name + "=" + quote + HtmlDocument.HtmlEncodeWithCompatibility(att.XmlValue, _ownerdocument.BackwardCompatibility) + quote);
+				if (!isWithoutValue)
+                { 
+					outText.Write(" " + name + "=" + quote + HtmlDocument.HtmlEncodeWithCompatibility(att.XmlValue, _ownerdocument.BackwardCompatibility) + quote);
+				}
+				else
+                { 
+					outText.Write(" " + name);
+				}
 			}
 			else
 			{
@@ -2361,18 +2371,24 @@ namespace HtmlAgilityPack
 						return;
 					}
 				}
-				
-				
 
-				var value = quoteType == AttributeValueQuote.DoubleQuote ? !att.Value.StartsWith("@") ? att.Value.Replace("\"", "&quot;") :
+				if (!isWithoutValue)
+				{
+					var value = quoteType == AttributeValueQuote.DoubleQuote ? !att.Value.StartsWith("@") ? att.Value.Replace("\"", "&quot;") :
 				   att.Value : quoteType == AttributeValueQuote.SingleQuote ?  att.Value.Replace("'", "&#39;") : att.Value;
-                if (_ownerdocument.OptionOutputOptimizeAttributeValues)
-					if (att.Value.IndexOfAny(new char[] {(char) 10, (char) 13, (char) 9, ' '}) < 0)
-						outText.Write(" " + name + "=" + att.Value);
+					if (_ownerdocument.OptionOutputOptimizeAttributeValues)
+						if (att.Value.IndexOfAny(new char[] {(char) 10, (char) 13, (char) 9, ' '}) < 0)
+							outText.Write(" " + name + "=" + att.Value);
+						else
+							outText.Write(" " + name + "=" + quote + value + quote);
 					else
 						outText.Write(" " + name + "=" + quote + value + quote);
+				}
 				else
-					outText.Write(" " + name + "=" + quote + value + quote);
+                {
+					outText.Write(" " + name);
+				}
+
 			}
 		}
 
