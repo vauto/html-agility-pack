@@ -1328,9 +1328,8 @@ namespace HtmlAgilityPack
 #else
             return GetAttributeValue<string>(name, def);
 #endif
-        }
+        } 
 
-#if METRO || NETSTANDARD1_3 || NETSTANDARD1_6
 		/// <summary>
 		/// Helper method to get the value of an attribute of this node. If the attribute is not found, the default value will be returned.
 		/// </summary>
@@ -1339,6 +1338,7 @@ namespace HtmlAgilityPack
 		/// <returns>The value of the attribute if found, the default value if not found.</returns>
 		public int GetAttributeValue(string name, int def)
 		{
+#if METRO || NETSTANDARD1_3 || NETSTANDARD1_6
 			if (name == null)
 			{
 				throw new ArgumentNullException("name");
@@ -1363,6 +1363,9 @@ namespace HtmlAgilityPack
 			{
 				return def;
 			}
+#else
+			return GetAttributeValue<int>(name, def);
+#endif
 		}
 
 		/// <summary>
@@ -1373,6 +1376,7 @@ namespace HtmlAgilityPack
 		/// <returns>The value of the attribute if found, the default value if not found.</returns>
 		public bool GetAttributeValue(string name, bool def)
 		{
+#if METRO || NETSTANDARD1_3 || NETSTANDARD1_6
 			if (name == null)
 			{
 				throw new ArgumentNullException("name");
@@ -1397,16 +1401,21 @@ namespace HtmlAgilityPack
 			{
 				return def;
 			}
-		}
 #else
-        /// <summary>
-        /// Helper method to get the value of an attribute of this node. If the attribute is not found,
-        /// the default value will be returned.
-        /// </summary>
-        /// <param name="name">The name of the attribute to get. May not be <c>null</c>.</param>
-        /// <param name="def">The default value to return if not found.</param>
-        /// <returns>The value of the attribute if found, the default value if not found.</returns>
-        public T GetAttributeValue<T>(string name, T def) 
+			return GetAttributeValue<bool>(name, def);
+#endif
+		}
+
+
+#if !(METRO || NETSTANDARD1_3 || NETSTANDARD1_6)
+		/// <summary>
+		/// Helper method to get the value of an attribute of this node. If the attribute is not found,
+		/// the default value will be returned.
+		/// </summary>
+		/// <param name="name">The name of the attribute to get. May not be <c>null</c>.</param>
+		/// <param name="def">The default value to return if not found.</param>
+		/// <returns>The value of the attribute if found, the default value if not found.</returns>
+		public T GetAttributeValue<T>(string name, T def) 
 		{
 			if (name == null)
 			{
@@ -1444,13 +1453,13 @@ namespace HtmlAgilityPack
 		}
 #endif
 
-        /// <summary>
-        /// Inserts the specified node immediately after the specified reference node.
-        /// </summary>
-        /// <param name="newChild">The node to insert. May not be <c>null</c>.</param>
-        /// <param name="refChild">The node that is the reference node. The newNode is placed after the refNode.</param>
-        /// <returns>The node being inserted.</returns>
-        public HtmlNode InsertAfter(HtmlNode newChild, HtmlNode refChild)
+		/// <summary>
+		/// Inserts the specified node immediately after the specified reference node.
+		/// </summary>
+		/// <param name="newChild">The node to insert. May not be <c>null</c>.</param>
+		/// <param name="refChild">The node that is the reference node. The newNode is placed after the refNode.</param>
+		/// <returns>The node being inserted.</returns>
+		public HtmlNode InsertAfter(HtmlNode newChild, HtmlNode refChild)
 		{
 			if (newChild == null)
 			{
@@ -2207,7 +2216,7 @@ namespace HtmlAgilityPack
 			HtmlAttribute att = Attributes["id"] ?? _ownerdocument.CreateAttribute("id");
 			att.Value = id;
 			_ownerdocument.SetIdForNode(this, att.Value);
-			Attributes.Add(att);
+			Attributes["id"] = att;
 			SetChanged();
 		}
 
