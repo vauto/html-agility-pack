@@ -54,9 +54,9 @@ layout: post
 					<li class="nav-item">
 						<a class="nav-link" href="https://github.com/zzzprojects/html-agility-pack"><i class="fa fa-github" aria-hidden="true"></i>&nbsp;GitHub</a>
 					</li>
-					<!--<li class="nav-item">
-						<a class="nav-link" href="https://github.com/zzzprojects/html-agility-pack/issues"><i class="fa fa-users" aria-hidden="true"></i>&nbsp;Contrib</a>
-					</li>!-->		
+							<li class="nav-item">
+								<a class="nav-link" href="http://www.zzzprojects.com/contribute" target="_blank"><i class="fa fa-users" aria-hidden="true"></i>&nbsp;Donate</a>
+							</li>	
 					<li class="nav-item">
 						<a class="nav-link" href="{{ site.github.url }}/contact-us"><i class="fa fa-envelope" aria-hidden="true"></i>&nbsp;Contact</a>
 					</li>
@@ -218,7 +218,7 @@ var nodes = doc.DocumentNode.Descendants("input")
 				<!-- key-4 !-->
 				<div class="col-lg-6 wow slideInRight">	
 					<div class="media">
-						<i class="fa fa-users"></i>
+						<i class="fa fa-bug"></i>
 						<div class="media-body">
 							<h5>Issue Tracker</h5>
 							<p>Found a bug? Have suggestion? Report it and get support from our professional team.</p>

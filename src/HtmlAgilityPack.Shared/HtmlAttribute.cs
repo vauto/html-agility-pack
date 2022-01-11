@@ -151,7 +151,7 @@ namespace HtmlAgilityPack
                 {
                     _value = _ownerdocument.Text.Substring(_valuestartindex, _valuelength);
 
-                    if (true) // XXX this is a BackwardCompatibility flag in 1.6.10+, our version needs it though.
+                    if (!_ownerdocument.BackwardCompatibility)
                     {
                         _value = HtmlEntity.DeEntitize(_value);
                     }
@@ -183,7 +183,7 @@ namespace HtmlAgilityPack
 
         internal string XmlName
         {
-            get { return HtmlDocument.GetXmlName(Name); }
+            get { return HtmlDocument.GetXmlName(Name, true); }
         }
 
         internal string XmlValue

@@ -3,7 +3,7 @@
 // Forum & Issues: https://github.com/zzzprojects/html-agility-pack
 // License: https://github.com/zzzprojects/html-agility-pack/blob/master/LICENSE
 // More projects: http://www.zzzprojects.com/
-// Copyright ï¿½ ZZZ Projects Inc. 2014 - 2017. All rights reserved.
+// Copyright © ZZZ Projects Inc. 2014 - 2017. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -23,6 +23,9 @@ namespace HtmlAgilityPack
 
         /// <summary>True to disable, false to enable the behavaior tag p.</summary>
         public static bool DisableBehavaiorTagP;
+
+        /// <summary>Default builder to use in the HtmlDocument constructor</summary>
+        public static Action<HtmlDocument> DefaultBuilder { get; set; }
 
         #endregion
 
@@ -56,8 +59,9 @@ namespace HtmlAgilityPack
         private Encoding _streamencoding;
         internal string Text;
 
-        // public props
 
+        /// <summary>True to stay backward compatible with previous version of HAP. This option does not guarantee 100% compatibility.</summary>
+        public bool BackwardCompatibility = true;
         /// <summary>
         /// Adds Debugging attributes to node. Default is false.
         /// </summary>
@@ -84,6 +88,9 @@ namespace HtmlAgilityPack
         /// Setting this to true will return empty collection and false will return null. Default is false.
 		/// </summary>
 		public bool OptionEmptyCollection = false;
+
+        /// <summary>True to disable, false to enable the server side code.</summary>
+        public bool DisableServerSideCode = false;
 
 
         /// <summary>
@@ -164,6 +171,14 @@ namespace HtmlAgilityPack
 
         internal static readonly string HtmlExceptionClassExists = "Class name already exists";
 
+        internal static readonly Dictionary<string, string[]> HtmlResetters = new Dictionary<string, string[]>()
+        {
+            {"li", new[] {"ul", "ol"}},
+            {"tr", new[] {"table"}},
+            {"th", new[] {"tr", "table"}},
+            {"td", new[] {"tr", "table"}},
+        };
+
         #endregion
 
         #region Constructors
@@ -173,6 +188,11 @@ namespace HtmlAgilityPack
         /// </summary>
         public HtmlDocument()
         {
+            if (DefaultBuilder != null)
+            {
+                DefaultBuilder(this);
+            }
+
             _documentnode = CreateNode(HtmlNodeType.Document, 0);
 #if SILVERLIGHT || METRO || NETSTANDARD
             OptionDefaultStreamEncoding = Encoding.UTF8;
@@ -281,6 +301,11 @@ namespace HtmlAgilityPack
         /// <returns>A string that is a valid XML name.</returns>
         public static string GetXmlName(string name)
         {
+            return GetXmlName(name, false);
+        }
+
+        public static string GetXmlName(string name, bool isAttribute)
+        {
             string xmlname = string.Empty;
             bool nameisok = true;
             for (int i = 0; i < name.Length; i++)
@@ -288,8 +313,9 @@ namespace HtmlAgilityPack
                 // names are lcase
                 // note: we are very limited here, too much?
                 if (((name[i] >= 'a') && (name[i] <= 'z')) ||
-                    ((name[i] >= 'A') && (name[i] <= 'Z')) || 
+                    ((name[i] >= 'A') && (name[i] <= 'Z')) ||
                     ((name[i] >= '0') && (name[i] <= '9')) ||
+                    (isAttribute && name[i] == ':') ||
                     //					(name[i]==':') || (name[i]=='_') || (name[i]=='-') || (name[i]=='.')) // these are bads in fact
                     (name[i] == '_') || (name[i] == '-') || (name[i] == '.'))
                 {
@@ -298,7 +324,7 @@ namespace HtmlAgilityPack
                 else
                 {
                     nameisok = false;
-                    byte[] bytes = Encoding.UTF8.GetBytes(new char[] {name[i]});
+                    byte[] bytes = Encoding.UTF8.GetBytes(new char[] { name[i] });
                     for (int j = 0; j < bytes.Length; j++)
                     {
                         xmlname += bytes[j].ToString("x2");
@@ -313,7 +339,8 @@ namespace HtmlAgilityPack
             return "_" + xmlname;
         }
 
-        private static readonly Regex HtmlEncodeRegex = new Regex("&(?!(amp;)|(lt;)|(gt;)|(quot;))", RegexOptions.IgnoreCase);
+        private static readonly Regex HtmlEncodeRegexBackwardCompatibility = new Regex("&(?!(amp;)|(lt;)|(gt;)|(quot;))", RegexOptions.IgnoreCase);
+        private static readonly Regex HtmlEncodeRegex = new Regex("&(?!(amp;)|(lt;)|(gt;)|(quot;)|(nbsp;)|(reg;))", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// Applies HTML encoding to a specified string.
@@ -322,13 +349,22 @@ namespace HtmlAgilityPack
         /// <returns>The encoded string.</returns>
         public static string HtmlEncode(string html)
         {
+            return HtmlEncodeWithCompatibility(html, true);
+        }
+
+        internal static string HtmlEncodeWithCompatibility(string html, bool backwardCompatibility = true)
+        {
             if (html == null)
             {
                 throw new ArgumentNullException("html");
             }
 
             // replace & by &amp; but only once!
-            return HtmlEncodeRegex.Replace(html, "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+            Regex rx = backwardCompatibility ?
+                HtmlEncodeRegexBackwardCompatibility :
+                HtmlEncodeRegex;
+            return rx.Replace(html, "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
         }
 
         /// <summary>
@@ -482,7 +518,7 @@ namespace HtmlAgilityPack
 
             if (OptionUseIdAttribute)
             {
-                Nodesid = new Dictionary<string, HtmlNode>();
+                Nodesid = new Dictionary<string, HtmlNode>(StringComparer.OrdinalIgnoreCase);
             }
             else
             {
@@ -570,7 +606,7 @@ namespace HtmlAgilityPack
             {
                 throw new Exception(HtmlExceptionUseIdAttributeFalse);
             }
-            return Nodesid.ContainsKey(id.ToLower()) ? Nodesid[id.ToLower()] : null;
+            return Nodesid.ContainsKey(id) ? Nodesid[id] : null;
         }
 
         /// <summary>
@@ -645,7 +681,7 @@ namespace HtmlAgilityPack
 
             if (OptionUseIdAttribute)
             {
-                Nodesid = new Dictionary<string, HtmlNode>();
+                Nodesid = new Dictionary<string, HtmlNode>(StringComparer.OrdinalIgnoreCase);
             }
             else
             {
@@ -845,9 +881,9 @@ namespace HtmlAgilityPack
                 return;
 
             if (node == null)
-                Nodesid.Remove(id.ToLower());
+                Nodesid.Remove(id);
             else
-                Nodesid[id.ToLower()] = node;
+                Nodesid[id] = node;
         }
 
         internal void UpdateLastParentNode()
@@ -880,7 +916,7 @@ namespace HtmlAgilityPack
                 return;
 
             bool error = false;
-            HtmlNode prev = Utilities.GetDictionaryValueOrNull(Lastnodes, _currentnode.Name);
+            HtmlNode prev = Utilities.GetDictionaryValueOrDefault(Lastnodes, _currentnode.Name);
 
             // find last node of this kind
             if (prev == null)
@@ -1019,7 +1055,7 @@ namespace HtmlAgilityPack
 
         private HtmlNode FindResetterNode(HtmlNode node, string name)
         {
-            HtmlNode resetter = Utilities.GetDictionaryValueOrNull(Lastnodes, name);
+            HtmlNode resetter = Utilities.GetDictionaryValueOrDefault(Lastnodes, name);
             if (resetter == null)
                 return null;
 
@@ -1052,7 +1088,7 @@ namespace HtmlAgilityPack
             if (resetters == null)
                 return;
 
-            HtmlNode prev = Utilities.GetDictionaryValueOrNull(Lastnodes, _currentnode.Name);
+            HtmlNode prev = Utilities.GetDictionaryValueOrDefault(Lastnodes, _currentnode.Name);
             // if we find a previous unclosed same name node, without a resetter node between, we must close it
             if (prev == null || (Lastnodes[name].Closed)) return;
             // try to find a resetter node, if found, we do nothing
@@ -1080,21 +1116,14 @@ namespace HtmlAgilityPack
 
         private string[] GetResetters(string name)
         {
-            switch (name)
+            string[] resetters;
+
+            if (!HtmlResetters.TryGetValue(name, out resetters))
             {
-                case "li":
-                    return new string[] {"ul", "ol"};
-
-                case "tr":
-                    return new string[] {"table"};
-
-                case "th":
-                case "td":
-                    return new string[] {"tr", "table"};
-
-                default:
-                    return null;
+                return null;
             }
+
+            return resetters;
         }
 
         private void IncrementPosition()
@@ -1135,6 +1164,11 @@ namespace HtmlAgilityPack
             {
                 if (Text[_index] == '%')
                 {
+                    if (DisableServerSideCode)
+                    {
+                        return false;
+                    }
+
                     switch (_state)
                     {
                         case ParseState.AttributeAfterEquals:
@@ -1256,6 +1290,12 @@ namespace HtmlAgilityPack
                                 CloseParentImplicitEnd();
                             }
 
+                            // CHECK if parent must be explicitely closed
+                            if (IsParentExplicitEnd())
+                            {
+                                CloseParentExplicitEnd();
+                            }
+
                             PushNodeNameEnd(_index - 1);
                             if (_state != ParseState.Tag)
                                 continue;
@@ -1268,6 +1308,12 @@ namespace HtmlAgilityPack
                             if (IsParentImplicitEnd())
                             {
                                 CloseParentImplicitEnd();
+                            }
+
+                            // CHECK if parent must be explicitely closed
+                            if (IsParentExplicitEnd())
+                            {
+                                CloseParentExplicitEnd();
                             }
 
                             PushNodeNameEnd(_index - 1);
@@ -1283,6 +1329,20 @@ namespace HtmlAgilityPack
                             {
                                 CloseParentImplicitEnd();
                             }
+
+                            // CHECK if parent must be explicitely closed
+                            if (IsParentExplicitEnd())
+                            {
+                                CloseParentExplicitEnd();
+                            }
+
+                            //// CHECK if parent is compatible with end tag
+                            //if (IsParentIncompatibleEndTag())
+                            //{
+                            //    _state = ParseState.Text;
+                            //    PushNodeStart(HtmlNodeType.Text, _index);
+                            //    break;
+                            //}
 
                             PushNodeNameEnd(_index - 1);
                             if (_state != ParseState.Tag)
@@ -1562,6 +1622,12 @@ namespace HtmlAgilityPack
                                 }
                             }
                         }
+                        else if (_oldstate == ParseState.QuotedAttributeValue
+                                 && _c == lastquote)
+                        {
+                            _state = _oldstate;
+                            DecrementPosition();
+                        }
                         break;
 
                     case ParseState.PcData:
@@ -1659,10 +1725,80 @@ namespace HtmlAgilityPack
                 case "p":
                     isImplicitEnd = nodeName == "p";
                     break;
+                case "option":
+                    isImplicitEnd = nodeName == "option";
+                    break;
             }
 
             return isImplicitEnd;
         }
+
+        private bool IsParentExplicitEnd()
+        {
+            // MUST be a start tag
+            if (!_currentnode._starttag) return false;
+
+            bool isExplicitEnd = false;
+
+            var parent = _lastparentnode.Name;
+            var nodeName = Text.Substring(_currentnode._namestartindex, _index - _currentnode._namestartindex - 1);
+
+            switch (parent)
+            {
+                case "title":
+                    isExplicitEnd = nodeName == "title";
+                    break;
+                case "h1":
+                    isExplicitEnd = nodeName == "h2" || nodeName == "h3" || nodeName == "h4" || nodeName == "h5";
+                    break;
+                case "h2":
+                    isExplicitEnd = nodeName == "h1" || nodeName == "h3" || nodeName == "h4" || nodeName == "h5";
+                    break;
+                case "h3":
+                    isExplicitEnd = nodeName == "h1" || nodeName == "h2" || nodeName == "h4" || nodeName == "h5";
+                    break;
+                case "h4":
+                    isExplicitEnd = nodeName == "h1" || nodeName == "h2" || nodeName == "h3" || nodeName == "h5";
+                    break;
+                case "h5":
+                    isExplicitEnd = nodeName == "h1" || nodeName == "h2" || nodeName == "h3" || nodeName == "h4";
+                    break;
+            }
+
+            return isExplicitEnd;
+        }
+
+        //private bool IsParentIncompatibleEndTag()
+        //{
+        //    // MUST be a end tag
+        //    if (_currentnode._starttag) return false;
+
+        //    bool isIncompatible = false;
+
+        //    var parent = _lastparentnode.Name;
+        //    var nodeName = Text.Substring(_currentnode._namestartindex, _index - _currentnode._namestartindex - 1);
+
+        //    switch (parent)
+        //    {
+        //        case "h1":
+        //            isIncompatible = nodeName == "h2" || nodeName == "h3" || nodeName == "h4" || nodeName == "h5";
+        //            break;
+        //        case "h2":
+        //            isIncompatible = nodeName == "h1" || nodeName == "h3" || nodeName == "h4" || nodeName == "h5";
+        //            break;
+        //        case "h3":
+        //            isIncompatible = nodeName == "h1" || nodeName == "h2" || nodeName == "h4" || nodeName == "h5";
+        //            break;
+        //        case "h4":
+        //            isIncompatible = nodeName == "h1" || nodeName == "h2" || nodeName == "h3" || nodeName == "h5";
+        //            break;
+        //        case "h5":
+        //            isIncompatible = nodeName == "h1" || nodeName == "h2" || nodeName == "h3" || nodeName == "h4";
+        //            break;
+        //    }
+
+        //    return isIncompatible;
+        //}
 
         private void CloseParentImplicitEnd()
         {
@@ -1670,6 +1806,13 @@ namespace HtmlAgilityPack
             close._endnode = close;
             close._isImplicitEnd = true;
             _lastparentnode._isImplicitEnd = true;
+            _lastparentnode.CloseNode(close);
+        }
+
+        private void CloseParentExplicitEnd()
+        {
+            HtmlNode close = new HtmlNode(_lastparentnode.NodeType, this, -1);
+            close._endnode = close;
             _lastparentnode.CloseNode(close);
         }
 
@@ -1712,7 +1855,7 @@ namespace HtmlAgilityPack
                     ReadDocumentEncoding(_currentnode);
 
                     // remember last node of this kind
-                    HtmlNode prev = Utilities.GetDictionaryValueOrNull(Lastnodes, _currentnode.Name);
+                    HtmlNode prev = Utilities.GetDictionaryValueOrDefault(Lastnodes, _currentnode.Name);
 
                     _currentnode._prevwithsamename = prev;
                     Lastnodes[_currentnode.Name] = _currentnode;

@@ -63,9 +63,8 @@ namespace HtmlAgilityPack
         {
             get
             {
-                nodeName = nodeName.ToLower();
                 for (int i = 0; i < _items.Count; i++)
-                    if (_items[i].Name.Equals(nodeName))
+                    if (string.Equals(_items[i].Name, nodeName, StringComparison.OrdinalIgnoreCase))
                         return _items[i];
 
                 return null;
@@ -107,7 +106,22 @@ namespace HtmlAgilityPack
         /// <param name="node"></param>
         public void Add(HtmlNode node)
         {
+            Add(node, true);
+        }
+
+        /// <summary>
+        /// Add node to the collection
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="setParent"></param>
+        public void Add(HtmlNode node, bool setParent)
+        {
             _items.Add(node);
+
+            if (setParent)
+            {
+                node.ParentNode = _parentnode;
+            }
         }
 
         /// <summary>
@@ -276,7 +290,7 @@ namespace HtmlAgilityPack
         {
             foreach (HtmlNode node in items)
             {
-                if (node.Name.ToLower().Contains(name))
+                if (node.Name.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1)
                     return node;
                 if (!node.HasChildNodes) continue;
                 HtmlNode returnNode = FindFirst(node.ChildNodes, name);
