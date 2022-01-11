@@ -228,7 +228,10 @@ namespace HtmlAgilityPack
             get { return !HasClosingAttributes ? new HtmlAttributeCollection(this) : _endnode.Attributes; }
         }
 
-        internal HtmlNode EndNode
+        /// <summary>
+        /// Gets the closing tag of the node, null if the node is self-closing.
+        /// </summary>
+        public HtmlNode EndNode
         {
             get { return _endnode; }
         }
@@ -349,7 +352,7 @@ namespace HtmlAgilityPack
                 if (_innerhtml != null)
                     return _innerhtml;
 
-                if (_innerstartindex < 0)
+                if (_innerstartindex < 0 || _innerlength < 0)
                     return string.Empty;
 
                 return _ownerdocument.Text.Substring(_innerstartindex, _innerlength);
@@ -463,6 +466,30 @@ namespace HtmlAgilityPack
         }
 
         /// <summary>
+        /// Gets the stream position of the area between the opening and closing tag of the node, relative to the start of the document.
+        /// </summary>
+        public int InnerStartIndex
+        {
+            get { return _innerstartindex; }
+        }
+
+        /// <summary>
+        /// Gets the length of the area between the opening and closing tag of the node.
+        /// </summary>
+        public int InnerLength
+        {
+            get { return _innerlength; }
+        }
+
+        /// <summary>
+        /// Gets the length of the entire node, opening and closing tag included.
+        /// </summary>
+        public int OuterLength
+        {
+            get { return _outerlength; }
+        }
+
+        /// <summary>
         /// Gets or sets this node's name.
         /// </summary>
         public string Name
@@ -477,7 +504,7 @@ namespace HtmlAgilityPack
                     if (_name == null)
                         _optimizedName = string.Empty;
                     else
-                        _optimizedName = _name.ToLower();
+                        _optimizedName = _name.ToLowerInvariant();
                 }
 
                 return _optimizedName;
@@ -533,7 +560,7 @@ namespace HtmlAgilityPack
                     return _outerhtml;
                 }
 
-                if (_outerstartindex < 0)
+                if (_outerstartindex < 0 || _outerlength < 0) 
                 {
                     return string.Empty;
                 }
@@ -758,7 +785,7 @@ namespace HtmlAgilityPack
             HtmlNode node = ParentNode;
             if (node != null)
             {
-                yield return node;//return the immediate parent node
+                yield return node; //return the immediate parent node
 
                 //now look at it's parent and walk up the tree of parents
                 while (node.ParentNode != null)
@@ -1636,7 +1663,7 @@ namespace HtmlAgilityPack
                 case HtmlNodeType.Document:
                     if (_ownerdocument.OptionOutputAsXml)
                     {
-#if SILVERLIGHT || PocketPC || METRO || NETSTANDARD
+#if SILVERLIGHT || PocketPC || METRO || NETSTANDARD1_3 || NETSTANDARD1_6
                         outText.Write("<?xml version=\"1.0\" encoding=\"" + _ownerdocument.GetOutEncoding().WebName + "\"?>");
 #else
                         outText.Write("<?xml version=\"1.0\" encoding=\"" + _ownerdocument.GetOutEncoding().BodyName + "\"?>");
@@ -1690,7 +1717,7 @@ namespace HtmlAgilityPack
                     break;
 
                 case HtmlNodeType.Element:
-                    string name = _ownerdocument.OptionOutputUpperCase ? Name.ToUpper() : Name;
+                    string name = _ownerdocument.OptionOutputUpperCase ? Name.ToUpperInvariant() : Name;
 
                     if (_ownerdocument.OptionOutputOriginalCase)
                         name = OriginalName;
@@ -1705,7 +1732,7 @@ namespace HtmlAgilityPack
 
                             if (name.Trim().Length == 0)
                                 break;
-                            name = HtmlDocument.GetXmlName(name);
+                            name = HtmlDocument.GetXmlName(name, false, _ownerdocument.OptionPreserveXmlNamespaces);
                         }
                         else
                             break;
@@ -1787,7 +1814,7 @@ namespace HtmlAgilityPack
                     break;
 
                 case HtmlNodeType.Document:
-#if SILVERLIGHT || PocketPC || METRO || NETSTANDARD
+#if SILVERLIGHT || PocketPC || METRO || NETSTANDARD1_3 || NETSTANDARD1_6
                     writer.WriteProcessingInstruction("xml",
                                                       "version=\"1.0\" encoding=\"" +
                                                       _ownerdocument.GetOutEncoding().WebName + "\"");
@@ -1813,7 +1840,7 @@ namespace HtmlAgilityPack
                     break;
 
                 case HtmlNodeType.Element:
-                    string name = _ownerdocument.OptionOutputUpperCase ? Name.ToUpper() : Name;
+                    string name = _ownerdocument.OptionOutputUpperCase ? Name.ToUpperInvariant() : Name;
 
                     if (_ownerdocument.OptionOutputOriginalCase)
                         name = OriginalName;
@@ -1967,7 +1994,7 @@ namespace HtmlAgilityPack
             string quote = att.QuoteType == AttributeValueQuote.DoubleQuote ? "\"" : "'";
             if (_ownerdocument.OptionOutputAsXml)
             {
-                name = _ownerdocument.OptionOutputUpperCase ? att.XmlName.ToUpper() : att.XmlName;
+                name = _ownerdocument.OptionOutputUpperCase ? att.XmlName.ToUpperInvariant() : att.XmlName;
                 if (_ownerdocument.OptionOutputOriginalCase)
                     name = att.OriginalName;
 
@@ -1975,7 +2002,7 @@ namespace HtmlAgilityPack
             }
             else
             {
-                name = _ownerdocument.OptionOutputUpperCase ? att.Name.ToUpper() : att.Name;
+                name = _ownerdocument.OptionOutputUpperCase ? att.Name.ToUpperInvariant() : att.Name;
                 if (_ownerdocument.OptionOutputOriginalCase)
                     name = att.OriginalName;
                 if (att.Name.Length >= 4)
