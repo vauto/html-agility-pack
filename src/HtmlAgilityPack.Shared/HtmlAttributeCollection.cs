@@ -8,6 +8,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HtmlAgilityPack
 {
@@ -372,14 +373,20 @@ namespace HtmlAgilityPack
             {
                 throw new ArgumentNullException("name");
             }
-
+            
+            List<int> listToRemove = new List<int>();
             for (int i = 0; i < items.Count; i++)
             {
                 HtmlAttribute att = items[i];
                 if (String.Equals(att.Name, name, StringComparison.OrdinalIgnoreCase))
                 {
-                    RemoveAt(i);
+                    listToRemove.Add(i);
                 }
+            }
+
+            foreach(var i in listToRemove.OrderByDescending(x => x))
+			{ 
+                RemoveAt(i);
             }
         }
 
